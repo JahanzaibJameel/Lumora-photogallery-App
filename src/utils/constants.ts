@@ -1,0 +1,29 @@
+export const APP_NAME = 'Lumora';
+export const VERSION = '1.0.0';
+
+export const CACHE_CONFIG = {
+  THUMBNAIL_TTL: 60 * 60 * 1000, // 1 hour
+  ALBUM_TTL: 5 * 60 * 1000, // 5 minutes
+  PHOTO_TTL: 10 * 60 * 1000, // 10 minutes
+};
+
+export const PERFORMANCE_CONFIG = {
+  BATCH_SIZE: 20,
+  INITIAL_RENDER: 10,
+  MAX_RENDER: 30,
+  WINDOW_SIZE: 5,
+  UPDATE_BATCHING: 50,
+};
+
+export const GESTURE_CONFIG = {
+  SWIPE_THRESHOLD: 100,
+  ZOOM_THRESHOLD: 1.5,
+  DOUBLE_TAP_DELAY: 300,
+};
+
+export const ANIMATION_CONFIG = {
+  SPRING_DAMPING: 15,
+  SPRING_STIFFNESS: 150,
+  TIMING_DURATION: 300,
+  ENTRY_DELAY: 50,
+};

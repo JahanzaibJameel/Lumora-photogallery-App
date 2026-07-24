@@ -84,14 +84,6 @@ Your memories deserve more than a grid.
 
 ---
 
-# 📸 Preview
-
-<p align="center">
-  <i>Screenshots coming soon — we're polishing the final UI.</i><br>
-  <sub>Until then, clone the repository and experience it yourself.</sub>
-</p>
-
----
 
 # 🧰 Tech Stack
 

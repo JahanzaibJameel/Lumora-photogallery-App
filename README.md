@@ -10,10 +10,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/Jahanzaibjameel/lumora/releases">
-    <img src="https://img.shields.io/github/v/release/Jahanzaibjameel/lumora?color=%236366f1&style=flat-square" alt="Release">
-  </a>
-  <a href="https://github.com/Jahanzaibjameel/lumora/blob/main/LICENSE">
+   <a href="https://github.com/Jahanzaibjameel/lumora/blob/main/LICENSE">
     <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
   </a>
   <a href="#">

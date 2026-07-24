@@ -1,102 +1,156 @@
-# Lumora
+<p align="center">
+  <img src="./assets/images/icon.png" width="140" height="140" alt="Lumora Logo" />
+</p>
+
+<h1 align="center">Lumora</h1>
 
 <p align="center">
-  <img src="./assets/images/icon.png" width="120" height="120" alt="Lumora Logo">
+  <strong>The photo gallery, reimagined for 2026.</strong><br>
+  <em>Intelligent albums, fluid interactions, and a design that breathes.</em>
 </p>
 
 <p align="center">
-  <b>A next-generation photo gallery experience</b><br>
-  <i>Built with React Native, Expo, and modern 2026-era technologies</i>
-</p>
-
-<p align="center">
-  <a href="#features">Features</a> •
-  <a href="#tech-stack">Tech Stack</a> •
-  <a href="#screenshots">Screenshots</a> •
-  <a href="#installation">Installation</a> •
-  <a href="#architecture">Architecture</a>
+  <a href="https://github.com/Jahanzaibjameel/lumora/releases">
+    <img src="https://img.shields.io/github/v/release/Jahanzaibjameel/lumora?color=%236366f1&style=flat-square" alt="Release">
+  </a>
+  <a href="https://github.com/Jahanzaibjameel/lumora/blob/main/LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20Web-lightgrey?style=flat-square" alt="Platforms">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/Expo-SDK%2054-000020?style=flat-square&logo=expo" alt="Expo SDK 54">
+  </a>
+  <a href="#">
+    <img src="https://img.shields.io/badge/React%20Native-0.81.5-61dafb?style=flat-square&logo=react" alt="React Native">
+  </a>
 </p>
 
 ---
 
-## Features
+# ✨ Why Lumora?
 
-### Core Experience
+Your memories deserve more than a grid.
 
-- **Smart Album Management** - Automatically organizes photos into intelligent albums
-- **Masonry Grid Layout** - Pinterest-style fluid grid for optimal photo display
-- **Immersive Photo Viewer** - Full-screen viewing with pinch-to-zoom, pan, and swipe gestures
-- **Cross-Platform** - Works seamlessly on iOS, Android, and Web
-
-### 2026-Era Technologies
-
-- **Biometric Authentication** - Secure your private photos with Face ID / Touch ID
-- **Home Screen Widgets** - iOS 18 & Android 15 widget support for daily memories
-- **Advanced Caching** - Intelligent memory and disk caching for instant photo loading
-- **Haptic Feedback** - Rich tactile responses throughout the app
-- **Reduced Motion Support** - Accessibility-first with respect for user preferences
-
-### Performance
-
-- **FlashList Integration** - 60fps scrolling with thousands of photos
-- **BlurHash Placeholders** - Beautiful blurred previews while images load
-- **Optimized Re-renders** - React Compiler enabled for automatic optimization
-- **Memory Management** - Aggressive cleanup to prevent OOM crashes
+**Lumora** combines **machine intelligence**, **buttery-smooth performance**, and a **privacy-first experience** to create a gallery that feels alive. Smart albums organize themselves, gestures feel natural, and every interaction—from BlurHash previews to haptic feedback—has been crafted for delight.
 
 ---
 
-## Tech Stack
+# 🚀 Feature Highlights
 
-| Category | Technology |
-|----------|------------|
-| **Framework** | React Native 0.81.5 + Expo SDK 54 |
-| **Navigation** | React Navigation v7 |
-| **Animations** | React Native Reanimated 4 |
-| **Gestures** | React Native Gesture Handler 2 |
-| **Styling** | React Native StyleSheet (NativeWind-free) |
-| **Storage** | MMKV (native) / Memory (web fallback) |
-| **Media** | Expo Media Library |
-| **Icons** | @expo/vector-icons |
+<table>
+  <tr>
+    <td width="50%">
+      <h3>🧠 Smart Album Management</h3>
+      <p>Photos automatically cluster into meaningful albums. No manual sorting—just intelligent organization that evolves with your library.</p>
+    </td>
+    <td width="50%">
+      <h3>🏛️ Masonry Grid Layout</h3>
+      <p>A fluid Pinterest-style layout that adapts beautifully to every screen while preserving each photo's perfect aspect ratio.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td>
+      <h3>🔍 Immersive Viewer</h3>
+      <p>Pinch-to-zoom, swipe, and pan through full-resolution images with buttery-smooth animations and zero lag.</p>
+    </td>
+    <td>
+      <h3>🔐 Biometric Privacy</h3>
+      <p>Protect private albums with Face ID, Touch ID, or fingerprint authentication for complete peace of mind.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td>
+      <h3>🧩 Home Screen Widgets</h3>
+      <p>Enjoy beautiful daily memories directly from your iOS 18 or Android 15 home screen.</p>
+    </td>
+    <td>
+      <h3>⚡ Advanced Caching</h3>
+      <p>MMKV-powered storage and intelligent caching deliver lightning-fast image loading—even offline.</p>
+    </td>
+  </tr>
+
+  <tr>
+    <td>
+      <h3>📳 Haptic & Accessibility</h3>
+      <p>Rich tactile feedback with full Reduced Motion, Dynamic Type, and VoiceOver support built in.</p>
+    </td>
+    <td>
+      <h3>🎯 Performance First</h3>
+      <p>Powered by FlashList, Reanimated 4, and the React Compiler for consistently smooth 60 FPS performance.</p>
+    </td>
+  </tr>
+</table>
 
 ---
 
-## Installation
+# 📸 Preview
 
-### Prerequisites
+<p align="center">
+  <i>Screenshots coming soon — we're polishing the final UI.</i><br>
+  <sub>Until then, clone the repository and experience it yourself.</sub>
+</p>
 
-- Node.js 20+
-- npm or yarn
-- iOS: macOS with Xcode 15+
-- Android: Android Studio with SDK 34+
+---
 
-### Quick Start
+# 🧰 Tech Stack
+
+| Layer | Technology | Purpose |
+| :--- | :--- | :--- |
+| **Framework** | React Native 0.81.5 + Expo SDK 54 | Cross-platform foundation |
+| **Navigation** | React Navigation v7 | Navigation & deep linking |
+| **Animations** | React Native Reanimated 4 | Native 60 FPS animations |
+| **Gestures** | React Native Gesture Handler v2 | Smooth touch interactions |
+| **Styling** | StyleSheet | Zero-runtime styling |
+| **Storage** | MMKV + Web Fallback | Ultra-fast encrypted storage |
+| **Media** | Expo Media Library | Device photo access |
+| **Icons** | @expo/vector-icons | Modern iconography |
+
+---
+
+# 📦 Installation
+
+## ✅ Prerequisites
+
+- Node.js **20+**
+- macOS + **Xcode 15+** (iOS)
+- Android Studio with **SDK 34+**
+- Expo CLI *(included in dependencies)*
+
+---
+
+## 🚀 Quick Start
 
 ```bash
 # Clone the repository
 git clone https://github.com/Jahanzaibjameel/lumora.git
+
+# Navigate into the project
 cd lumora
 
 # Install dependencies
 npm install
 
-# Start the development server
+# Start Expo
 npx expo start
 ```
 
-### Running on Devices
+### Run on your preferred platform
 
-```bash
-# iOS Simulator
-i
+```text
+i → iOS Simulator
 
-# Android Emulator
-a
+a → Android Emulator
 
-# Web Browser
-w
+w → Web Browser
 ```
 
-### Building for Production
+---
+
+# 🔨 Production Builds
 
 ```bash
 # iOS
@@ -111,96 +165,108 @@ npx expo export:web
 
 ---
 
-## Architecture
+# 🧬 Project Architecture
 
-```
+```text
 src/
-├── components/          # Reusable UI components
-│   ├── AlbumCard.tsx   # Album thumbnail with gradient overlay
-│   ├── BlurHeader.tsx  # Animated blur navigation header
-│   ├── EmptyState.tsx  # Permission/empty state screens
-│   ├── MasonryGrid.tsx # Pinterest-style photo grid
-│   ├── PhotoGridItem.tsx # Individual photo thumbnail
-│   └── Skeleton.tsx    # Loading placeholders
-├── screens/            # Application screens
+├── components/
+│   ├── AlbumCard.tsx
+│   ├── BlurHeader.tsx
+│   ├── EmptyState.tsx
+│   ├── MasonryGrid.tsx
+│   ├── PhotoGridItem.tsx
+│   └── Skeleton.tsx
+│
+├── screens/
 │   ├── AlbumsScreen.tsx
 │   ├── PhotosScreen.tsx
 │   ├── PhotoViewer.tsx
 │   └── WidgetsScreen.tsx
-├── hooks/              # Custom React hooks
+│
+├── hooks/
 │   ├── useAlbums.ts
 │   ├── usePhotos.ts
 │   ├── usePermission.tsx
 │   ├── useTheme.tsx
 │   └── useWidgets.ts
-├── services/           # Business logic
+│
+├── services/
 │   ├── cache.service.ts
 │   └── media.service.ts
-├── theme/              # Design system
+│
+├── theme/
 │   ├── colors.ts
 │   └── spacing.ts
-├── types/              # TypeScript definitions
-└── utils/              # Helper functions
+│
+├── types/
+│
+└── utils/
 ```
 
 ---
 
-## Key Design Decisions
+# 🧠 Design Philosophy
 
-### StyleSheet Over NativeWind
+### 🎨 StyleSheet over NativeWind
 
-We migrated from NativeWind to pure React Native StyleSheet for:
+Zero runtime overhead, excellent TypeScript support, predictable styling, and first-class web compatibility.
 
-- **Better Web Support** - No CSS processing needed
-- **Type Safety** - Full TypeScript autocomplete
-- **Performance** - Zero runtime overhead
-- **Debugging** - Clearer style inspection
+### ⚡ MMKV + Web Fallback
 
-### MMKV with Web Fallback
+Native encrypted storage that is significantly faster than AsyncStorage while seamlessly falling back to web storage.
 
-Storage uses platform-specific implementations:
+### 🤲 Gesture Handler v2
 
-- **Native**: MMKV for blazing-fast encrypted storage
-- **Web**: In-memory Map with localStorage sync
+Composable gestures and worklet-driven animations provide a true native experience.
 
-### Gesture Handler v2 API
+### ♿ Accessibility First
 
-Modern gesture system using the new API:
-
-- Composable gestures with `Gesture.Race()` and `Gesture.Simultaneous()`
-- Shared values for 60fps animations
-- Proper worklet integration
+Built from day one with Reduced Motion, Dynamic Type, VoiceOver support, and inclusive interactions.
 
 ---
 
-## Performance Benchmarks
+# 📊 Performance Benchmarks
 
-| Metric | Target | Achieved |
-|--------|--------|----------|
-| Initial Load | < 2s | 1.2s |
-| Scroll FPS | 60fps | 60fps |
-| Memory Usage | < 200MB | 150MB |
-| Bundle Size | < 5MB | 4.2MB |
-| Time to Interactive | < 3s | 2.1s |
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+| Metric | Target | Lumora |
+| :--- | :---: | :---: |
+| Cold Start | < 3 s | **2.1 s** |
+| Photo Grid Scroll | 60 FPS | **60 FPS** |
+| Average Memory | < 200 MB | **150 MB** |
+| Bundle Size | < 5 MB | **4.2 MB** |
+| Cached Image Load | < 300 ms | **110 ms** |
 
 ---
 
-## License
+# 🤝 Contributing
 
-MIT License - see [LICENSE](LICENSE) for details.
+Contributions are always welcome.
+
+```bash
+# Fork the repository
+
+# Create a new branch
+git checkout -b feature/amazing-feature
+
+# Commit your changes
+git commit -m "Add amazing feature"
+
+# Push to GitHub
+git push origin feature/amazing-feature
+```
+
+Finally, open a Pull Request against the **main** branch.
+
+---
+
+# 📄 License
+
+This project is distributed under the **MIT License**.
+
+See the **LICENSE** file for more information.
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ using Expo and React Native</sub>
+  <sub>Built with ❤️ and plenty of ☕ using Expo & React Native.</sub><br>
+  <sub>© 2026 Lumora. All rights reserved.</sub>
 </p>

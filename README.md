@@ -123,10 +123,10 @@ Your memories deserve more than a grid.
 
 ```bash
 # Clone the repository
-git clone https://github.com/Jahanzaibjameel/lumora.git
+git clone https://github.com/JahanzaibJameel/Lumora-photogallery-App
 
 # Navigate into the project
-cd lumora
+cd Lumora-photogallery-App
 
 # Install dependencies
 npm install

@@ -12,10 +12,13 @@ import {
 } from 'react-native';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 import BlurHashImage from '../components/BlurHashImage';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
 import { useWidgets, WidgetType } from '../hooks/useWidgets';
+import { spacing, borderRadius, typography } from '../theme/tokens';
+import { hexToRgba } from '../utils/helpers';
 
-const WIDGET_ICONS: Record<WidgetType, any> = {
+const WIDGET_ICONS: Record<WidgetType, string> = {
     daily_memory: 'calendar-outline',
     random_photo: 'shuffle-outline',
     album_preview: 'images-outline',
@@ -30,7 +33,8 @@ const WIDGET_DESCRIPTIONS: Record<WidgetType, string> = {
 };
 
 const WidgetsScreen = () => {
-    const { colors, isDark } = useTheme();
+    const { colors } = useTheme();
+    const reduceMotion = useReducedMotion();
     const {
         widgets,
         widgetData,
@@ -112,7 +116,7 @@ const WidgetsScreen = () => {
                 >
                     <View style={styles.infoCardContent}>
                         <View
-                            style={[styles.infoIconContainer, { backgroundColor: colors.accent + '20' }]}
+                            style={[styles.infoIconContainer, { backgroundColor: hexToRgba(colors.accent, 0.12) }]}
                         >
                             <Ionicons name="information-circle" size={20} color={colors.accent} />
                         </View>
@@ -131,95 +135,103 @@ const WidgetsScreen = () => {
 
                 {/* Widget List */}
                 {widgets.map((widget, index) => (
-                    <Animated.View
-                        key={widget.id}
-                        entering={FadeInUp.delay(index * 100)}
-                        style={styles.widgetContainer}
-                    >
-                        <View
-                            style={[
-                                styles.widgetCard,
-                                {
-                                    backgroundColor: colors.surface,
-                                    opacity: widget.enabled ? 1 : 0.6,
-                                },
-                            ]}
-                        >
-                            {/* Widget Header */}
-                            <View style={styles.widgetHeader}>
-                                <View style={styles.widgetHeaderLeft}>
-                                    <View
-                                        style={[styles.widgetIconContainer, { backgroundColor: colors.accent + '15' }]}
-                                    >
-                                        <Ionicons
-                                            name={WIDGET_ICONS[widget.type]}
-                                            size={24}
-                                            color={colors.accent}
-                                        />
-                                    </View>
-                                    <View style={styles.widgetTextContainer}>
-                                        <Text
-                                            style={[styles.widgetTitle, { color: colors.textPrimary }]}
-                                        >
-                                            {widget.title}
-                                        </Text>
-                                        <Text
-                                            style={[styles.widgetDescription, { color: colors.textSecondary }]}
-                                        >
-                                            {WIDGET_DESCRIPTIONS[widget.type]}
-                                        </Text>
-                                    </View>
-                                    <Switch
-                                        value={widget.enabled}
-                                        onValueChange={() => toggleWidget(widget.id)}
-                                        trackColor={{ false: colors.border, true: colors.accent + '50' }}
-                                        thumbColor={widget.enabled ? colors.accent : '#f4f3f4'}
-                                    />
-                                </View>
-                            </View>
+                     <Animated.View
+                          key={widget.id}
+                          entering={reduceMotion ? undefined : FadeInUp.delay(index * 100)}
+                          style={styles.widgetContainer}
+                      >
+                         <View
+                             style={[
+                                 styles.widgetCard,
+                                 {
+                                     backgroundColor: colors.surface,
+                                     opacity: widget.enabled ? 1 : 0.6,
+                                 },
+                             ]}
+                         >
+                             {/* Widget Header */}
+                             <View style={styles.widgetHeader}>
+                                 <View style={styles.widgetHeaderLeft}>
+                                     <View
+                                         style={[styles.widgetIconContainer, { backgroundColor: hexToRgba(colors.accent, 0.12) }]}
+                                     >
+                                         <Ionicons
+                                             name={WIDGET_ICONS[widget.type] as keyof typeof Ionicons.glyphMap}
+                                             size={24}
+                                             color={colors.accent}
+                                         />
+                                     </View>
+                                     <View style={styles.widgetTextContainer}>
+                                         <Text
+                                             style={[styles.widgetTitle, { color: colors.textPrimary }]}
+                                         >
+                                             {widget.title}
+                                         </Text>
+                                         <Text
+                                             style={[styles.widgetDescription, { color: colors.textSecondary }]}
+                                         >
+                                             {WIDGET_DESCRIPTIONS[widget.type]}
+                                         </Text>
+                                     </View>
+                                     <Switch
+                                         value={widget.enabled}
+                                         onValueChange={() => toggleWidget(widget.id)}
+                                         trackColor={{ false: colors.border, true: hexToRgba(colors.accent, 0.3) }}
+                                         thumbColor={widget.enabled ? colors.accent : '#f4f3f4'}
+                                         accessibilityLabel={`${widget.title} widget switch`}
+                                         accessibilityHint={`${widget.enabled ? 'Disables' : 'Enables'} the ${widget.title} widget`}
+                                     />
+                                 </View>
+                             </View>
 
-                            {/* Widget Preview */}
-                            {widget.enabled && (
-                                <View style={styles.previewRow}>
-                                    <View
-                                        style={[
-                                            styles.previewBox,
-                                            {
-                                                width: widget.size === 'small' ? 100 : widget.size === 'large' ? 300 : 200,
-                                                height: widget.size === 'small' ? 100 : widget.size === 'large' ? 300 : 200,
-                                                backgroundColor: colors.background,
-                                            },
-                                        ]}
-                                    >
-                                        {renderWidgetPreview(widget.id)}
-                                    </View>
+                             {/* Widget Preview */}
+                             {widget.enabled && (
+                                 <View style={styles.previewRow}>
+                                     <View
+                                         style={[
+                                             styles.previewBox,
+                                             {
+                                                 width: widget.size === 'small' ? 100 : widget.size === 'large' ? 300 : 200,
+                                                 height: widget.size === 'small' ? 100 : widget.size === 'large' ? 300 : 200,
+                                                 backgroundColor: colors.background,
+                                             },
+                                         ]}
+                                     >
+                                         {renderWidgetPreview(widget.id)}
+                                     </View>
 
-                                    {/* Refresh Button */}
-                                    <TouchableOpacity
-                                        onPress={() => refreshWidget(widget.id)}
-                                        style={[styles.refreshButton, { backgroundColor: colors.background }]}
-                                    >
-                                        <Ionicons name="refresh" size={18} color={colors.textSecondary} />
-                                    </TouchableOpacity>
-                                </View>
-                            )}
+                                     {/* Refresh Button */}
+                                     <TouchableOpacity
+                                         onPress={() => refreshWidget(widget.id)}
+                                         style={[styles.refreshButton, { backgroundColor: colors.background }]}
+                                         accessibilityRole="button"
+                                         accessibilityLabel={`Refresh ${widget.title} widget`}
+                                         accessibilityHint="Updates the widget preview data"
+                                     >
+                                         <Ionicons name="refresh" size={18} color={colors.textSecondary} />
+                                     </TouchableOpacity>
+                                 </View>
+                             )}
 
-                            {/* Last Updated */}
-                            {widget.enabled && widgetData[widget.id] && (
-                                <Text
-                                    style={[styles.lastUpdated, { color: colors.textSecondary }]}
-                                >
-                                    Last updated: {new Date(widgetData[widget.id].updatedAt).toLocaleTimeString()}
-                                </Text>
-                            )}
-                        </View>
-                    </Animated.View>
+                             {/* Last Updated */}
+                             {widget.enabled && widgetData[widget.id] && (
+                                 <Text
+                                     style={[styles.lastUpdated, { color: colors.textSecondary }]}
+                                 >
+                                     Last updated: {new Date(widgetData[widget.id].updatedAt).toLocaleTimeString()}
+                                 </Text>
+                             )}
+                         </View>
+                     </Animated.View>
                 ))}
 
                 {/* Refresh All Button */}
                 <TouchableOpacity
                     onPress={handleRefresh}
                     style={[styles.refreshAllButton, { backgroundColor: colors.accent }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Refresh all widgets"
+                    accessibilityHint="Updates all widget preview data"
                 >
                     <Ionicons name="refresh-circle" size={20} color="white" />
                     <Text style={styles.refreshAllText}>Refresh All Widgets</Text>
@@ -244,7 +256,7 @@ const WidgetsScreen = () => {
                                 <View
                                     style={[styles.sizeIconContainer, { backgroundColor: colors.background }]}
                                 >
-                                    <Ionicons name={item.icon as any} size={24} color={colors.accent} />
+                                     <Ionicons name={item.icon as keyof typeof Ionicons.glyphMap} size={24} color={colors.accent} />
                                 </View>
                                 <Text
                                     style={[styles.sizeLabel, { color: colors.textPrimary }]}
@@ -270,29 +282,28 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     header: {
-        paddingHorizontal: 24,
-        paddingTop: 16,
-        paddingBottom: 16,
+        paddingHorizontal: spacing.xl,
+        paddingTop: spacing.md,
+        paddingBottom: spacing.md,
     },
     headerTitle: {
-        fontSize: 30,
-        fontWeight: 'bold',
+        ...typography.h1,
     },
     headerSubtitle: {
-        fontSize: 16,
-        marginTop: 4,
+        ...typography.body,
+        marginTop: spacing.xs,
     },
     scrollView: {
         flex: 1,
     },
     scrollContent: {
-        paddingHorizontal: 16,
+        paddingHorizontal: spacing.md,
     },
     infoCard: {
-        marginHorizontal: 8,
-        marginBottom: 24,
-        padding: 16,
-        borderRadius: 16,
+        marginHorizontal: spacing.sm,
+        marginBottom: spacing.lg,
+        padding: spacing.md,
+        borderRadius: borderRadius.lg,
     },
     infoCardContent: {
         flexDirection: 'row',
@@ -307,29 +318,28 @@ const styles = StyleSheet.create({
     },
     infoTextContainer: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: spacing.sm,
     },
     infoTitle: {
-        fontSize: 14,
-        fontWeight: '500',
+        ...typography.title,
     },
     infoDescription: {
-        fontSize: 12,
-        marginTop: 2,
+        ...typography.bodySmall,
+        marginTop: spacing.xs,
     },
     widgetContainer: {
-        marginHorizontal: 8,
-        marginBottom: 16,
+        marginHorizontal: spacing.sm,
+        marginBottom: spacing.md,
     },
     widgetCard: {
-        padding: 16,
-        borderRadius: 16,
+        padding: spacing.md,
+        borderRadius: borderRadius.lg,
     },
     widgetHeader: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        marginBottom: 16,
+        marginBottom: spacing.md,
     },
     widgetHeaderLeft: {
         flexDirection: 'row',
@@ -339,59 +349,58 @@ const styles = StyleSheet.create({
     widgetIconContainer: {
         width: 48,
         height: 48,
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         alignItems: 'center',
         justifyContent: 'center',
     },
     widgetTextContainer: {
         flex: 1,
-        marginLeft: 12,
+        marginLeft: spacing.sm,
     },
     widgetTitle: {
-        fontSize: 16,
-        fontWeight: '600',
+        ...typography.title,
     },
     widgetDescription: {
-        fontSize: 12,
-        marginTop: 2,
+        ...typography.bodySmall,
+        marginTop: spacing.xs,
     },
     previewRow: {
         flexDirection: 'row',
     },
     previewBox: {
-        borderRadius: 16,
+        borderRadius: borderRadius.lg,
         overflow: 'hidden',
     },
     previewContainer: {
         flex: 1,
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         overflow: 'hidden',
     },
     previewEmpty: {
         flex: 1,
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         alignItems: 'center',
         justifyContent: 'center',
     },
     previewEmptyText: {
-        fontSize: 12,
-        marginTop: 8,
+        ...typography.bodySmall,
+        marginTop: spacing.sm,
     },
     badge: {
         position: 'absolute',
-        top: 8,
-        right: 8,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 9999,
+        top: spacing.sm,
+        right: spacing.sm,
+        paddingHorizontal: spacing.sm,
+        paddingVertical: spacing.xs,
+        borderRadius: borderRadius.full,
     },
     badgeText: {
         color: 'white',
-        fontSize: 12,
-        fontWeight: '500',
+        ...typography.bodySmall,
+        fontWeight: '600',
     },
     refreshButton: {
-        marginLeft: 12,
+        marginLeft: spacing.sm,
         width: 40,
         height: 40,
         borderRadius: 20,
@@ -399,33 +408,33 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     lastUpdated: {
-        fontSize: 12,
-        marginTop: 12,
+        ...typography.bodySmall,
+        marginTop: spacing.sm,
     },
     refreshAllButton: {
-        marginHorizontal: 8,
-        marginBottom: 24,
-        padding: 16,
-        borderRadius: 16,
+        marginHorizontal: spacing.sm,
+        marginBottom: spacing.lg,
+        padding: spacing.md,
+        borderRadius: borderRadius.lg,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'center',
     },
     refreshAllText: {
         color: 'white',
+        ...typography.title,
         fontWeight: '600',
-        marginLeft: 8,
+        marginLeft: spacing.sm,
     },
     sizeGuideCard: {
-        marginHorizontal: 8,
-        marginBottom: 24,
-        padding: 16,
-        borderRadius: 16,
+        marginHorizontal: spacing.sm,
+        marginBottom: spacing.lg,
+        padding: spacing.md,
+        borderRadius: borderRadius.lg,
     },
     sizeGuideTitle: {
-        fontSize: 14,
-        fontWeight: '600',
-        marginBottom: 12,
+        ...typography.title,
+        marginBottom: spacing.sm,
     },
     sizeGuideRow: {
         flexDirection: 'row',
@@ -437,20 +446,20 @@ const styles = StyleSheet.create({
     sizeIconContainer: {
         width: 64,
         height: 64,
-        borderRadius: 12,
+        borderRadius: borderRadius.md,
         alignItems: 'center',
         justifyContent: 'center',
-        marginBottom: 8,
+        marginBottom: spacing.sm,
     },
     sizeLabel: {
-        fontSize: 12,
-        fontWeight: '500',
+        ...typography.bodySmall,
+        fontWeight: '600',
     },
     sizeDims: {
-        fontSize: 12,
+        ...typography.bodySmall,
     },
     bottomSpacer: {
-        height: 32,
+        height: spacing.lg,
     },
 });
 

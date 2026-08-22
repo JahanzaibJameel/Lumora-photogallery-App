@@ -11,8 +11,10 @@ import Animated, {
     withDelay,
     withSpring,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
-import { Photo } from '../types/photo';
+import { borderRadius } from '../theme/tokens';
+import { Photo } from '../types';
 import BlurHashImage from './BlurHashImage';
 
 interface PhotoGridItemProps {
@@ -20,7 +22,6 @@ interface PhotoGridItemProps {
   index: number;
   onPress: (photo: Photo, index: number, layout?: { x: number; y: number; width: number; height: number }) => void;
   onLongPress?: (photo: Photo) => void;
-  gridSize?: 'small' | 'medium' | 'large';
 }
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
@@ -30,52 +31,47 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
   index,
   onPress,
   onLongPress,
-  gridSize = 'medium',
 }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(0);
-  const translateY = useSharedValue(20);
-
-  const getDimensions = () => {
-    // FlashList handles column layout, so we use flex-based sizing
-    switch (gridSize) {
-      case 'small':
-        return { aspectRatio: 1 };
-      case 'large':
-        return { aspectRatio: 1 };
-      default:
-        return { aspectRatio: 1 };
-    }
-  };
+  const opacity = useSharedValue(reduceMotion ? 1 : 0);
+  const translateY = useSharedValue(reduceMotion ? 0 : 20);
 
   useEffect(() => {
+    if (reduceMotion) return;
     opacity.value = withDelay(index * 30, withSpring(1, { damping: 20 }));
     translateY.value = withDelay(index * 30, withSpring(0, { damping: 20 }));
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [photo.id, index, reduceMotion]);
 
   const handlePressIn = useCallback(() => {
-    scale.value = withSpring(0.95, {
-      damping: 15,
-      stiffness: 150,
-    });
+    if (reduceMotion) {
+      scale.value = 0.95;
+    } else {
+      scale.value = withSpring(0.95, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [scale]);
+  }, [scale, reduceMotion]);
 
   const handlePressOut = useCallback(() => {
-    scale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 150,
-    });
-  }, [scale]);
+    if (reduceMotion) {
+      scale.value = 1;
+    } else {
+      scale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
+  }, [scale, reduceMotion]);
 
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     onPress(photo, index);
   }, [photo, index, onPress]);
-
-  // Generate unique ID for shared element transition
-  const sharedElementId = `photo-${photo.id}`;
 
   const handleLongPress = useCallback(() => {
     if (onLongPress) {
@@ -92,8 +88,6 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
     opacity: opacity.value,
   }));
 
-  const dimensions = getDimensions();
-
   return (
     <AnimatedTouchable
       activeOpacity={0.7}
@@ -102,6 +96,9 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
       onPress={handlePress}
       onLongPress={onLongPress ? handleLongPress : undefined}
       delayLongPress={400}
+      accessibilityRole="imagebutton"
+      accessibilityLabel={`Photo ${photo.filename}`}
+      accessibilityHint="Double-tap to view full size"
       style={[
         styles.container,
         animatedStyle,
@@ -120,8 +117,12 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
     </AnimatedTouchable>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.photo.id === nextProps.photo.id &&
-    prevProps.gridSize === nextProps.gridSize;
+  return (
+    prevProps.photo.id === nextProps.photo.id &&
+    prevProps.photo.uri === nextProps.photo.uri &&
+    prevProps.onPress === nextProps.onPress &&
+    prevProps.onLongPress === nextProps.onLongPress
+  );
 });
 
 PhotoGridItem.displayName = 'PhotoGridItem';
@@ -129,7 +130,7 @@ PhotoGridItem.displayName = 'PhotoGridItem';
 const styles = StyleSheet.create({
   container: {
     overflow: 'hidden',
-    borderRadius: 8,
+    borderRadius: borderRadius.md,
     flex: 1,
     margin: 2,
   },

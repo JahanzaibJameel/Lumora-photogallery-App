@@ -1,4 +1,3 @@
-
 export type RootStackParamList = {
   Albums: undefined;
   Photos: { albumId: string; albumTitle: string };
@@ -7,8 +6,3 @@ export type RootStackParamList = {
   Widgets: undefined;
 };
 
-declare global {
-  namespace ReactNavigation {
-    interface RootParamList extends RootStackParamList {}
-  }
-}

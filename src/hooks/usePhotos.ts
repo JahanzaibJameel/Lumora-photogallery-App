@@ -1,67 +1,117 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { getMediaService } from '../services/media.service';
 import { cacheThumbnails } from '../services/storage.service';
-import { Photo } from '../types/photo';
+import { Photo } from '../types';
+import { errorReporter } from '../utils/errorReporting';
+import { AppError, ErrorCategory, ErrorSeverity, categorizeError } from '../utils/errors';
 
 const PHOTOS_BATCH_SIZE = 30;
+const MAX_RETRIES = 2;
+
+interface PhotosState {
+  photos: Photo[];
+  loading: boolean;
+  error: AppError | null;
+  refreshing: boolean;
+  retryCount: number;
+}
 
 export const usePhotos = (albumId: string) => {
-  const [photos, setPhotos] = useState<Photo[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [refreshing, setRefreshing] = useState(false);
-  
-  const lastFetchedIndex = useRef(0);
+  const [state, setState] = useState<PhotosState>({
+    photos: [],
+    loading: true,
+    error: null,
+    refreshing: false,
+    retryCount: 0,
+  });
+
+  const endCursor = useRef<string | undefined>(undefined);
   const hasMore = useRef(true);
+  // Mirrors state.retryCount so loadPhotos only depends on albumId
+  // (adding reactive retryCount would re-trigger the mount effect after
+  // every failure and cause an automatic retry loop).
+  const retryCountRef = useRef(0);
+  const retryTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const loadPhotos = useCallback(async (refresh = false) => {
-    if (!albumId) return;
-
     try {
+      if (!albumId) return;
+
       if (refresh) {
-        setRefreshing(true);
-        lastFetchedIndex.current = 0;
+        setState(s => ({ ...s, refreshing: true, error: null, retryCount: 0 }));
+        retryCountRef.current = 0;
+        endCursor.current = undefined;
         hasMore.current = true;
+        getMediaService().clearCache();
       } else {
-        setLoading(true);
+        if (!hasMore.current) return;
+        setState(s => ({ ...s, loading: true, error: null }));
       }
 
       const mediaService = getMediaService();
-      const fetchedPhotos = await mediaService.getPhotosFromAlbum(
+      const result = await mediaService.getPhotosFromAlbum(
         albumId,
-        lastFetchedIndex.current,
+        endCursor.current,
         PHOTOS_BATCH_SIZE
       );
 
-      if (fetchedPhotos.length < PHOTOS_BATCH_SIZE) {
-        hasMore.current = false;
-      }
+      hasMore.current = result.hasNextPage;
 
-      setPhotos(prev => {
-        if (refresh) return fetchedPhotos;
-        return [...prev, ...fetchedPhotos];
-      });
+      setState(s => ({
+        ...s,
+        photos: refresh ? result.photos : [...s.photos, ...result.photos],
+      }));
 
-      lastFetchedIndex.current += fetchedPhotos.length;
+      endCursor.current = result.endCursor ?? undefined;
 
-      // Cache thumbnails
-      const thumbnailUris = fetchedPhotos.map(photo => photo.uri);
+      const thumbnailUris = result.photos.map(photo => photo.uri);
       await cacheThumbnails(albumId, thumbnailUris.slice(0, 4));
 
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load photos');
-      console.error('Error loading photos:', err);
+      const appError = categorizeError(err);
+      retryCountRef.current += 1;
+      appError.context = { ...appError.context, albumId, retryCount: retryCountRef.current };
+      errorReporter.capture(appError, { hook: 'usePhotos', action: 'loadPhotos' });
+
+      setState(s => ({
+        ...s,
+        error: appError,
+        retryCount: s.retryCount + 1,
+      }));
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setState(s => ({ ...s, loading: false, refreshing: false }));
     }
   }, [albumId]);
 
+  useEffect(() => {
+    loadPhotos();
+    return () => {
+      if (retryTimeout.current) clearTimeout(retryTimeout.current);
+    };
+  }, [loadPhotos]);
+
+  const retryLoad = useCallback(() => {
+    if (state.retryCount >= MAX_RETRIES) {
+      setState(s => ({ ...s, error: new AppError({
+        message: 'Unable to load photos after multiple attempts. Please check your connection.',
+        category: ErrorCategory.NETWORK,
+        severity: ErrorSeverity.HIGH,
+        code: 'MAX_RETRIES_EXCEEDED',
+        context: { albumId, retryCount: state.retryCount },
+      }) }));
+      return;
+    }
+
+    retryTimeout.current = setTimeout(() => {
+      loadPhotos(false);
+    }, 1000 * state.retryCount);
+  }, [state.retryCount, loadPhotos, albumId]);
+
   const loadMore = useCallback(() => {
-    if (!loading && hasMore.current) {
+    if (!state.loading && hasMore.current) {
       loadPhotos(false);
     }
-  }, [loading, loadPhotos]);
+  }, [state.loading, loadPhotos]);
 
   const refreshPhotos = useCallback(() => {
     loadPhotos(true);
@@ -71,20 +121,27 @@ export const usePhotos = (albumId: string) => {
     try {
       const mediaService = getMediaService();
       await mediaService.deletePhoto(photoId);
-      setPhotos(prev => prev.filter(photo => photo.id !== photoId));
+      setState(s => ({
+        ...s,
+        photos: s.photos.filter(photo => photo.id !== photoId),
+      }));
     } catch (error) {
-      console.error('Error deleting photo:', error);
-      throw error;
+      const appError = categorizeError(error);
+      appError.context = { ...appError.context, albumId, photoId };
+      errorReporter.capture(appError, { hook: 'usePhotos', action: 'deletePhoto' });
+      throw appError;
     }
-  }, []);
+  }, [albumId]);
 
   return {
-    photos,
-    loading,
-    error,
-    refreshing,
+    photos: state.photos,
+    loading: state.loading,
+    error: state.error,
+    refreshing: state.refreshing,
+    retryCount: state.retryCount,
     loadMore,
     refreshPhotos,
+    retryLoad,
     deletePhoto,
   };
 };

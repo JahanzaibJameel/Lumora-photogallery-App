@@ -1,15 +1,26 @@
 import { NavigationContainer } from '@react-navigation/native';
-import { createStackNavigator, TransitionPresets } from '@react-navigation/stack';
+import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from '@react-navigation/stack';
 import BlurHeader from '../components/BlurHeader';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import AlbumsScreen from '../screens/AlbumsScreen';
-import PhotosScreen from '../screens/PhotosScreen';
 import PhotoViewer from '../screens/PhotoViewer';
+import PhotosScreen from '../screens/PhotosScreen';
 import WidgetsScreen from '../screens/WidgetsScreen';
 import { RootStackParamList } from '../types/navigation';
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+const noAnimationTransition = {
+  transitionSpec: {
+    open: { animation: 'timing' as const, config: { duration: 0 } },
+    close: { animation: 'timing' as const, config: { duration: 0 } },
+  },
+  cardStyleInterpolator: CardStyleInterpolators.forNoAnimation,
+};
+
 export default function RootNavigator() {
+  const reduceMotion = useReducedMotion();
+
   return (
     <NavigationContainer>
       <Stack.Navigator
@@ -23,6 +34,7 @@ export default function RootNavigator() {
           // headerBackTitleVisible removed - not supported in v7
           cardStyle: { backgroundColor: 'transparent' },
           cardOverlayEnabled: true,
+          transitionSpec: reduceMotion ? noAnimationTransition.transitionSpec : undefined,
         }}
       >
         <Stack.Screen
@@ -35,9 +47,9 @@ export default function RootNavigator() {
         <Stack.Screen
           name="Photos"
           component={PhotosScreen}
-          options={({ route }) => ({
-            header: () => <BlurHeader title={route.params.albumTitle} showBack />,
-          })}
+          options={{
+            headerShown: false,
+          }}
         />
         <Stack.Screen
           name="PhotoViewer"
@@ -45,8 +57,7 @@ export default function RootNavigator() {
           options={{
             headerShown: false,
             presentation: 'modal',
-            // animationEnabled removed - use TransitionPresets instead
-            ...TransitionPresets.ModalSlideFromBottomIOS,
+            ...(reduceMotion ? noAnimationTransition : TransitionPresets.ModalSlideFromBottomIOS),
           }}
         />
         <Stack.Screen

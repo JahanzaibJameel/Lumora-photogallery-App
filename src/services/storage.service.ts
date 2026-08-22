@@ -1,132 +1,126 @@
-import { Platform } from 'react-native';
 import { MMKV } from 'react-native-mmkv';
 
-// MMKV is not fully supported on Web, use memory fallback
-const isWeb = Platform.OS === 'web';
-
-// Memory storage fallback for web
-const memoryStorage = new Map<string, string>();
-
-const mmkvStorage = isWeb 
-  ? null 
-  : new MMKV({
-      id: 'lumora-storage',
-      encryptionKey: 'lumora-secure-storage-key-2026',
-    });
-
 export const StorageKeys = {
-  THEME: 'lumora_theme',
-  LAST_ALBUM: 'lumora_last_album',
-  THUMBNAILS_PREFIX: 'lumora_thumb_',
+  ALBUMS: 'lumora_albums',
+  PHOTOS: 'lumora_photos',
   SETTINGS: 'lumora_settings',
-  RECENT_PHOTOS: 'lumora_recent_photos',
-  HIDDEN_ALBUMS: 'lumora_hidden_albums',
-  FAVORITES: 'lumora_favorites',
-  SEARCH_HISTORY: 'lumora_search_history',
-  WIDGET_PREFIX: 'lumora_widget_',
+  THEMES: 'lumora_themes',
+  CACHE: 'lumora_cache',
   BIOMETRIC_CONFIG: 'lumora_biometric_config',
   SCREENSHOT_CONFIG: 'lumora_screenshot_config',
+  FAVORITES: 'lumora_favorites',
+  WIDGET_PREFIX: 'lumora_widget_',
+  SEARCH_HISTORY: 'lumora_search_history',
+  REDUCED_MOTION: 'lumora_reduced_motion',
 } as const;
 
-export const storageService = {
-  set: (key: string, value: unknown): void => {
-    try {
-      const jsonValue = JSON.stringify(value);
-      if (isWeb) {
-        memoryStorage.set(key, jsonValue);
-      } else {
-        mmkvStorage?.set(key, jsonValue);
-      }
-    } catch (error) {
-      console.error('Error saving to storage:', error);
-    }
-  },
+interface IStorageService {
+  init(): Promise<void>;
+  save(key: string, value: unknown): Promise<void>;
+  set(key: string, value: unknown): Promise<void>;
+  get<T>(key: string): T | null;
+  getString(key: string): string | null;
+  getNumber(key: string): number | null;
+  getBoolean(key: string): boolean | null;
+  delete(key: string): Promise<void>;
+  clear(): Promise<void>;
+}
 
-  get: <T>(key: string): T | null => {
+class StorageService implements IStorageService {
+  private mmkv: MMKV;
+
+  constructor(id: string = 'lumora-storage') {
+    this.mmkv = new MMKV({ id });
+  }
+
+  async init(): Promise<void> {
+    // MMKV initialization is handled on instance creation
+  }
+
+  async save(key: string, value: unknown): Promise<void> {
+    const strValue = JSON.stringify(value);
+    this.mmkv.set(key, strValue);
+  }
+
+  async set(key: string, value: unknown): Promise<void> {
+    await this.save(key, value);
+  }
+
+  get<T>(key: string): T | null {
+    const strValue = this.mmkv.getString(key);
+    if (strValue === undefined || strValue === null) return null;
     try {
-      const value = isWeb 
-        ? memoryStorage.get(key) 
-        : mmkvStorage?.getString(key);
-      if (!value) return null;
-      return JSON.parse(value) as T;
-    } catch (error) {
-      console.error('Error reading from storage:', error);
+      return JSON.parse(strValue) as T;
+    } catch {
       return null;
     }
-  },
-
-  delete: (key: string): void => {
-    try {
-      if (isWeb) {
-        memoryStorage.delete(key);
-      } else {
-        mmkvStorage?.delete(key);
-      }
-    } catch (error) {
-      console.error('Error deleting from storage:', error);
-    }
-  },
-
-  getAllKeys: (): string[] => {
-    if (isWeb) {
-      return Array.from(memoryStorage.keys());
-    }
-    return mmkvStorage?.getAllKeys() || [];
-  },
-
-  clearAll: (): void => {
-    if (isWeb) {
-      memoryStorage.clear();
-    } else {
-      mmkvStorage?.clearAll();
-    }
-  },
-
-  contains: (key: string): boolean => {
-    if (isWeb) {
-      return memoryStorage.has(key);
-    }
-    return mmkvStorage?.contains(key) || false;
-  },
-};
-
-export const cacheThumbnails = async (albumId: string, thumbnails: string[]): Promise<void> => {
-  storageService.set(`${StorageKeys.THUMBNAILS_PREFIX}${albumId}`, {
-    thumbnails,
-    timestamp: Date.now(),
-  });
-};
-
-export const loadCachedThumbnails = async (albumId: string): Promise<string[] | null> => {
-  const data = storageService.get<{ thumbnails: string[]; timestamp: number }>(
-    `${StorageKeys.THUMBNAILS_PREFIX}${albumId}`
-  );
-  
-  if (!data) return null;
-  
-  // Check if cache is older than 1 hour
-  if (Date.now() - data.timestamp > 60 * 60 * 1000) {
-    storageService.delete(`${StorageKeys.THUMBNAILS_PREFIX}${albumId}`);
-    return null;
   }
-  
-  return data.thumbnails;
+
+  getString(key: string): string | null {
+    const value = this.mmkv.getString(key);
+    if (value === undefined || value === null) return null;
+    try {
+      const parsed = JSON.parse(value);
+      if (typeof parsed === 'string') return parsed;
+    } catch {
+      // not JSON, return raw string
+    }
+    return value;
+  }
+
+  getNumber(key: string): number | null {
+    const value = this.mmkv.getNumber(key);
+    return value ?? null;
+  }
+
+  getBoolean(key: string): boolean | null {
+    const value = this.mmkv.getBoolean(key);
+    return value ?? null;
+  }
+
+  async delete(key: string): Promise<void> {
+    this.mmkv.delete(key);
+  }
+
+  async clear(): Promise<void> {
+    this.mmkv.clearAll();
+  }
+
+  contains(key: string): boolean {
+    return this.mmkv.contains(key);
+  }
+}
+
+export const storageService = new StorageService();
+
+export const cacheThumbnails = async (albumId: string, thumbnailUris: string[]): Promise<void> => {
+  const key = `${StorageKeys.CACHE}_thumbnails_${albumId}`;
+  await storageService.save(key, thumbnailUris);
 };
 
-export const saveLastOpenedAlbum = async (albumId: string): Promise<void> => {
-  storageService.set(StorageKeys.LAST_ALBUM, albumId);
+export const loadCachedThumbnails = (albumId: string): string[] | null => {
+  const key = `${StorageKeys.CACHE}_thumbnails_${albumId}`;
+  const cached = storageService.get<unknown>(key);
+  if (!Array.isArray(cached)) return null;
+  const thumbnails = cached.filter(
+    (item): item is string => typeof item === 'string'
+  );
+  return thumbnails.length > 0 ? thumbnails : null;
 };
 
-export const getLastOpenedAlbum = async (): Promise<string | null> => {
-  return storageService.get<string>(StorageKeys.LAST_ALBUM);
+export const addSearchHistory = (query: string): void => {
+  const history = getSearchHistory();
+  if (!history.includes(query)) {
+    const newHistory = [query, ...history].slice(0, 20);
+    storageService.save(StorageKeys.SEARCH_HISTORY, newHistory);
+  }
 };
 
-export const clearAlbumCache = async (albumId: string): Promise<void> => {
-  storageService.delete(`${StorageKeys.THUMBNAILS_PREFIX}${albumId}`);
+export const clearSearchHistory = (): void => {
+  storageService.save(StorageKeys.SEARCH_HISTORY, []);
 };
 
-export const clearAllCache = async (): Promise<void> => {
-  const keys = storageService.getAllKeys();
-  const cacheKeys = keys.filter((key: string) => key.startsWith('lumora_'));
-  cacheKeys.forEach((key: string) => storageService.delete(key));
+export const getSearchHistory = (): string[] => {
+  const history = storageService.get<string[]>(StorageKeys.SEARCH_HISTORY);
+  return history || [];
 };

@@ -5,20 +5,6 @@ export const spacing = {
   lg: 24,
   xl: 32,
   xxl: 48,
-};
+} as const;
 
-export const borderRadius = {
-  sm: 8,
-  md: 12,
-  lg: 16,
-  xl: 20,
-  xxl: 28,
-  full: 9999,
-};
-
-export const iconSize = {
-  sm: 16,
-  md: 24,
-  lg: 32,
-  xl: 48,
-};
+export type SpacingScale = typeof spacing;

@@ -1,5 +1,5 @@
-import React, { memo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import React, { memo, useEffect } from 'react';
+import { StyleSheet, View, ViewStyle } from 'react-native';
 import Animated, {
     Easing,
     useAnimatedStyle,
@@ -7,13 +7,15 @@ import Animated, {
     withRepeat,
     withTiming,
 } from 'react-native-reanimated';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
+import { spacing } from '../theme/tokens';
 
 interface SkeletonProps {
   width?: number | string;
   height?: number | string;
   borderRadius?: number;
-  style?: any;
+  style?: React.ComponentProps<typeof View>['style'];
 }
 
 const Skeleton: React.FC<SkeletonProps> = memo(({
@@ -22,10 +24,12 @@ const Skeleton: React.FC<SkeletonProps> = memo(({
   borderRadius = 8,
   style,
 }) => {
-  const { colors, isDark } = useTheme();
-  const opacity = useSharedValue(0.5);
+  const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const opacity = useSharedValue(reduceMotion ? 0.6 : 0.5);
 
-  React.useEffect(() => {
+  useEffect(() => {
+    if (reduceMotion) return;
     opacity.value = withRepeat(
       withTiming(0.8, {
         duration: 1000,
@@ -34,18 +38,16 @@ const Skeleton: React.FC<SkeletonProps> = memo(({
       -1,
       true
     );
-  }, []);
+  }, [opacity, reduceMotion]);
 
   const animatedStyle = useAnimatedStyle(() => ({
     opacity: opacity.value,
   }));
 
-  const backgroundColor = isDark 
-    ? 'rgba(255,255,255,0.1)' 
-    : 'rgba(0,0,0,0.1)';
+  const backgroundColor = colors.surfaceVariant;
 
   return (
-    <View style={[{ width, height, borderRadius }, style]}>
+    <View style={[{ width, height, borderRadius } as ViewStyle, style]}>
       <Animated.View
         style={[
           {
@@ -94,22 +96,22 @@ export const PhotoGridSkeleton = () => {
 const styles = StyleSheet.create({
   albumContainer: {
     width: '48%',
-    marginBottom: 16,
+    marginBottom: spacing.md,
   },
   textContainer: {
-    marginTop: 8,
+    marginTop: spacing.sm,
   },
   subtitleContainer: {
-    marginTop: 4,
+    marginTop: spacing.xs,
   },
   gridContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 4,
+    paddingHorizontal: spacing.xs,
   },
   gridItem: {
     width: '32%',
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
 });

@@ -2,19 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { FlashList } from '@shopify/flash-list';
-import { useCallback, useState } from 'react';
+import { useCallback } from 'react';
 import {
-  Platform,
+  ActivityIndicator,
   RefreshControl,
   SafeAreaView,
   StyleSheet,
   TouchableOpacity,
   View
 } from 'react-native';
-import Animated, {
-  useAnimatedScrollHandler,
-  useSharedValue,
-} from 'react-native-reanimated';
+import Animated from 'react-native-reanimated';
 
 import AlbumCard from '../components/AlbumCard';
 import EmptyState from '../components/EmptyState';
@@ -22,15 +19,17 @@ import { AlbumSkeleton } from '../components/Skeleton';
 import { useAlbums } from '../hooks/useAlbums';
 import { usePermission } from '../hooks/usePermission';
 import { useTheme } from '../hooks/useTheme';
+import { spacing, borderRadius } from '../theme/tokens';
+import { Album } from '../types';
 import { RootStackParamList } from '../types/navigation';
 
-const AnimatedFlashList = Animated.createAnimatedComponent(FlashList);
+const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Album>);
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Albums'>;
 
 const AlbumsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
-  const { colors, isDark } = useTheme();
+  const { colors } = useTheme();
   const { permission, isLoading: permissionLoading } = usePermission();
   const {
     albums,
@@ -39,25 +38,17 @@ const AlbumsScreen = () => {
     refreshing,
     loadMore,
     refreshAlbums,
+    retryLoad,
   } = useAlbums();
 
-  const scrollY = useSharedValue(0);
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      scrollY.value = event.contentOffset.y;
-    },
-  });
-
-  const [sortBy, setSortBy] = useState<'name' | 'count' | 'recent'>('recent');
-
-  const handleAlbumPress = useCallback((album: any) => {
+  const handleAlbumPress = useCallback((album: Album) => {
     navigation.navigate('Photos', {
       albumId: album.id,
       albumTitle: album.title,
     });
   }, [navigation]);
 
-  const renderAlbum = useCallback(({ item, index }: { item: any; index: number }) => (
+  const renderAlbum = useCallback(({ item }: { item: Album; index: number }) => (
     <AlbumCard
       album={item}
       onPress={handleAlbumPress}
@@ -68,15 +59,7 @@ const AlbumsScreen = () => {
     if (loading && albums.length > 0) {
       return (
         <View style={styles.footerContainer}>
-          <View style={[
-            styles.spinner,
-            {
-              borderTopColor: colors.accent,
-              borderRightColor: colors.accent + '40',
-              borderBottomColor: colors.accent + '40',
-              borderLeftColor: colors.accent + '40',
-            }
-          ]} />
+          <ActivityIndicator size="small" color={colors.accent} />
         </View>
       );
     }
@@ -102,9 +85,9 @@ const AlbumsScreen = () => {
       return (
         <EmptyState
           type="error"
-          title="Failed to Load Albums"
-          message={error}
-          onAction={refreshAlbums}
+          title={error.category === 'NETWORK' ? 'Connection Issue' : 'Failed to Load Albums'}
+          message={error.message}
+          onAction={retryLoad}
         />
       );
     }
@@ -117,7 +100,7 @@ const AlbumsScreen = () => {
         onAction={refreshAlbums}
       />
     );
-  }, [permissionLoading, loading, permission, error, refreshAlbums]);
+  }, [permissionLoading, loading, permission, error, refreshAlbums, retryLoad]);
 
   if (permissionLoading && albums.length === 0) {
     return (
@@ -134,17 +117,14 @@ const AlbumsScreen = () => {
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <View style={[styles.listContainer, Platform.OS === 'web' ? { height: '100vh' as any } : undefined]}>
+      <View style={styles.listContainer}>
         <AnimatedFlashList
           data={albums}
           renderItem={renderAlbum}
-          keyExtractor={(item: any) => item.id}
+          keyExtractor={(item: Album) => item.id}
           numColumns={2}
           estimatedItemSize={200}
-          contentContainerStyle={{
-            paddingTop: 80,
-            paddingBottom: 20,
-          }}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onEndReached={loadMore}
           onEndReachedThreshold={0.5}
@@ -159,8 +139,6 @@ const AlbumsScreen = () => {
               progressBackgroundColor={colors.surface}
             />
           }
-          scrollEventThrottle={16}
-          onScroll={scrollHandler}
           removeClippedSubviews={true}
         />
       </View>
@@ -176,6 +154,9 @@ const AlbumsScreen = () => {
           ]}
           activeOpacity={0.7}
           onPress={refreshAlbums}
+          accessibilityRole="button"
+          accessibilityLabel="Refresh albums"
+          accessibilityHint="Updates your album list"
         >
           <Ionicons name="refresh" size={24} color="white" />
         </TouchableOpacity>
@@ -191,38 +172,35 @@ const styles = StyleSheet.create({
   listContainer: {
     flex: 1,
   },
+  listContent: {
+    paddingTop: 80,
+    paddingBottom: spacing.md,
+  },
   footerContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    paddingVertical: 16,
-  },
-  spinner: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    borderWidth: 2,
-    borderColor: 'transparent',
+    paddingVertical: spacing.md,
   },
   skeletonContainer: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   loadingContainer: {
     flex: 1,
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.md,
   },
   loadingInner: {
-    paddingTop: 64,
+    paddingTop: spacing.xxl,
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
-    right: 24,
+    bottom: spacing.lg,
+    right: spacing.lg,
     width: 56,
     height: 56,
-    borderRadius: 28,
+    borderRadius: borderRadius.xxl,
     alignItems: 'center',
     justifyContent: 'center',
     shadowOffset: { width: 0, height: 4 },

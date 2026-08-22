@@ -1,11 +1,10 @@
-// This replaces ALL other type files
-
 export interface Album {
   id: string;
   title: string;
   count: number;
   thumbnailUri?: string;
   createdAt: number;
+  updatedAt: number;
 }
 
 export interface Photo {
@@ -14,13 +13,14 @@ export interface Photo {
   filename: string;
   width: number;
   height: number;
+  size: number;
   albumId: string;
   createdAt: number;
+  modifiedAt: number;
+  location?: {
+    latitude: number;
+    longitude: number;
+  };
+  metadata?: Record<string, unknown>;
+  title?: string;
 }
-
-// Navigation types
-export type RootStackParamList = {
-  Albums: undefined;
-  Photos: { albumId: string; albumTitle: string };
-  PhotoViewer: { photoId: string; albumId: string; initialIndex: number };
-};

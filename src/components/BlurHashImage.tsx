@@ -1,13 +1,14 @@
 import { Image } from 'expo-image';
 import React, { useState } from 'react';
 import { View } from 'react-native';
-import Animated, { useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import Animated, { ReduceMotion, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
 
 interface BlurHashImageProps {
   uri: string;
   blurhash?: string;
-  style?: any;
+  style?: React.ComponentProps<typeof View>['style'];
   contentFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down';
   transitionDuration?: number;
 }
@@ -22,10 +23,14 @@ export const BlurHashImage: React.FC<BlurHashImageProps> = ({
   transitionDuration = 300,
 }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
   const [loaded, setLoaded] = useState(false);
 
   const imageAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: withTiming(loaded ? 1 : 0, { duration: transitionDuration }),
+    opacity: withTiming(loaded ? 1 : 0, {
+      duration: transitionDuration,
+      reduceMotion: reduceMotion ? ReduceMotion.Always : ReduceMotion.System,
+    }),
   }));
 
   return (

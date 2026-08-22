@@ -1,27 +1,40 @@
-import { Platform, StatusBar } from 'react-native';
+import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ThemeProvider } from './hooks/useTheme';
+import ErrorBoundary from './components/ErrorBoundary';
+import { GridSizeProvider } from './contexts/GridSizeContext';
+import { ReducedMotionProvider } from './contexts/ReducedMotionContext';
+import { ThemeProvider } from './contexts/ThemeContext';
+import { useTheme } from './hooks/useTheme';
 import RootNavigator from './navigation/RootNavigator';
 
-// Import NativeWind styles for web
-if (Platform.OS === 'web') {
-  require('./styles.css');
+function MainApp() {
+  const { isDark } = useTheme();
+
+  return (
+    <SafeAreaProvider>
+      <StatusBar
+        barStyle={isDark ? 'light-content' : 'dark-content'}
+        backgroundColor="transparent"
+        translucent
+      />
+      <ErrorBoundary>
+        <RootNavigator />
+      </ErrorBoundary>
+    </SafeAreaProvider>
+  );
 }
 
 export default function App() {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
-        <ThemeProvider>
-          <StatusBar
-            barStyle="light-content"
-            backgroundColor="transparent"
-            translucent
-          />
-          <RootNavigator />
-        </ThemeProvider>
-      </SafeAreaProvider>
-    </GestureHandlerRootView>
+    <ThemeProvider>
+      <ReducedMotionProvider>
+        <GridSizeProvider>
+          <GestureHandlerRootView style={{ flex: 1 }} accessible={true}>
+            <MainApp />
+          </GestureHandlerRootView>
+        </GridSizeProvider>
+      </ReducedMotionProvider>
+    </ThemeProvider>
   );
 }

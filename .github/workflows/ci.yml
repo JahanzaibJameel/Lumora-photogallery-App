@@ -1,0 +1,41 @@
+name: CI Pipeline for Lumora-photogallery-App
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '18.x'
+
+    - name: Install dependencies
+      run: npm install --legacy-peer-deps
+
+    - name: Install expo-cli globally
+      run: npm install -g expo-cli
+
+    - name: Run ESLint linter
+      run: npm run lint
+
+    - name: Type check with TypeScript
+      run: npm run type-check
+
+    - name: Run Jest tests
+      run: npm test
+
+    - name: Build web export
+      if: github.ref == 'refs/heads/main'
+      run: expo export --platform web

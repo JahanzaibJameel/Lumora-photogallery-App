@@ -15,8 +15,11 @@ import Animated, {
     useSharedValue,
     withSpring,
 } from 'react-native-reanimated';
+import { useAlbumThumbnail } from '../hooks/useAlbumThumbnail';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
-import { Album } from '../types/album';
+import { spacing, borderRadius } from '../theme/tokens';
+import { Album } from '../types';
 
 interface AlbumCardProps {
   album: Album;
@@ -27,25 +30,35 @@ const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
 const AlbumCard: React.FC<AlbumCardProps> = memo(({ album, onPress }) => {
   const { colors } = useTheme();
+  const reduceMotion = useReducedMotion();
+  const thumbnailUri = useAlbumThumbnail(album.id, album.thumbnailUri);
   const scale = useSharedValue(1);
   const pressed = useSharedValue(0);
 
   const handlePressIn = useCallback(() => {
     pressed.value = 1;
-    scale.value = withSpring(0.95, {
-      damping: 15,
-      stiffness: 150,
-    });
+    if (reduceMotion) {
+      scale.value = 0.95;
+    } else {
+      scale.value = withSpring(0.95, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-  }, [pressed, scale]);
+  }, [pressed, scale, reduceMotion]);
 
   const handlePressOut = useCallback(() => {
     pressed.value = 0;
-    scale.value = withSpring(1, {
-      damping: 15,
-      stiffness: 150,
-    });
-  }, [pressed, scale]);
+    if (reduceMotion) {
+      scale.value = 1;
+    } else {
+      scale.value = withSpring(1, {
+        damping: 15,
+        stiffness: 150,
+      });
+    }
+  }, [pressed, scale, reduceMotion]);
 
   const handlePress = useCallback(() => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -89,11 +102,14 @@ const AlbumCard: React.FC<AlbumCardProps> = memo(({ album, onPress }) => {
         onPressIn={handlePressIn}
         onPressOut={handlePressOut}
         onPress={handlePress}
+        accessibilityRole="button"
+        accessibilityLabel={`Open album ${album.title}, ${album.count} photos`}
+        accessibilityHint="Double-tap to open album"
         style={styles.touchable}
       >
-        {album.thumbnailUri ? (
+        {thumbnailUri ? (
           <ImageBackground
-            source={{ uri: album.thumbnailUri }}
+            source={{ uri: thumbnailUri }}
             resizeMode="cover"
             style={styles.imageBackground}
           >
@@ -142,7 +158,12 @@ const AlbumCard: React.FC<AlbumCardProps> = memo(({ album, onPress }) => {
     </Animated.View>
   );
 }, (prevProps, nextProps) => {
-  return prevProps.album.id === nextProps.album.id;
+  return (
+    prevProps.album.id === nextProps.album.id &&
+    prevProps.album.count === nextProps.album.count &&
+    prevProps.album.thumbnailUri === nextProps.album.thumbnailUri &&
+    prevProps.album.title === nextProps.album.title
+  );
 });
 
 AlbumCard.displayName = 'AlbumCard';
@@ -150,12 +171,12 @@ AlbumCard.displayName = 'AlbumCard';
 const styles = StyleSheet.create({
   container: {
     width: '100%',
-    paddingHorizontal: 8,
-    marginBottom: 16,
+    paddingHorizontal: spacing.sm,
+    marginBottom: spacing.md,
   },
   touchable: {
     overflow: 'hidden',
-    borderRadius: 16,
+    borderRadius: borderRadius.xl,
   },
   imageBackground: {
     width: '100%',

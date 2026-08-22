@@ -1,21 +1,22 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { BlurView } from 'expo-blur';
-import React, { memo } from 'react';
+import React, { memo, useState } from 'react';
 import {
-    Platform,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Platform,
+  StyleSheet,
+  View,
 } from 'react-native';
-import Animated, {
+import AnimatedReanimated, {
     interpolate,
-    useAnimatedScrollHandler,
-    useAnimatedStyle
+    useAnimatedStyle,
+    SharedValue,
 } from 'react-native-reanimated';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
+import { IconButton } from './primitives/IconButton';
+import { SearchBar } from './primitives/SearchBar';
+import { Text } from './primitives/Text';
 
 interface BlurHeaderProps {
   title: string;
@@ -23,161 +24,132 @@ interface BlurHeaderProps {
   showSearch?: boolean;
   showWidgets?: boolean;
   onSearchChange?: (text: string) => void;
-  scrollY?: any;
+  scrollY?: SharedValue<number>;
 }
 
-const BlurHeader: React.FC<BlurHeaderProps> = memo(({
-  title,
-  showBack = false,
-  showSearch = false,
-  showWidgets = false,
-  onSearchChange,
-  scrollY,
-}) => {
-  const navigation = useNavigation();
-  const { colors, isDark } = useTheme();
-  const [searchVisible, setSearchVisible] = React.useState(false);
-  const searchText = React.useState('');
+const BlurHeader: React.FC<BlurHeaderProps> = memo(
+  ({
+    title,
+    showBack = false,
+    showSearch = false,
+    showWidgets = false,
+    onSearchChange,
+    scrollY,
+  }) => {
+    const navigation = useNavigation();
+    const { isDark } = useTheme();
+    const reduceMotion = useReducedMotion();
+    const insets = useSafeAreaInsets();
+    const [searchVisible, setSearchVisible] = useState(false);
+    const [searchText, setSearchText] = useState('');
 
-  const scrollHandler = useAnimatedScrollHandler({
-    onScroll: (event) => {
-      if (scrollY) {
-        scrollY.value = event.contentOffset.y;
+    const headerStyle = useAnimatedStyle(() => {
+      if (!scrollY || reduceMotion) {
+        return { opacity: reduceMotion ? 1 : 0 };
       }
-    },
-  });
+      const opacity = interpolate(
+        scrollY.value,
+        [0, 50],
+        [0, 1],
+        { extrapolateRight: 'clamp' }
+      );
+      return { opacity };
+    });
 
-  const headerStyle = useAnimatedStyle(() => {
-    if (!scrollY) return {};
+    const contentStyle = useAnimatedStyle(() => {
+      if (!scrollY || reduceMotion) return {};
+      const translateY = interpolate(
+        scrollY.value,
+        [0, 50],
+        [0, -10],
+        { extrapolateRight: 'clamp' }
+      );
+      return { transform: [{ translateY }] };
+    });
 
-    const opacity = interpolate(
-      scrollY.value,
-      [0, 50],
-      [0, 1],
-      { extrapolateRight: 'clamp' }
-    );
-
-    return {
-      opacity,
+    const handleBack = () => navigation.goBack();
+    const handleWidgets = () => navigation.navigate('Widgets' as never);
+    const toggleSearch = () => {
+      setSearchVisible((v) => !v);
+      if (searchVisible) {
+        setSearchText('');
+        onSearchChange?.('');
+      }
     };
-  });
 
-  const contentStyle = useAnimatedStyle(() => {
-    if (!scrollY) return {};
+    const blurIntensity = Platform.OS === 'ios' ? 30 : 80;
+    const tint = isDark ? 'dark' : 'light';
 
-    const translateY = interpolate(
-      scrollY.value,
-      [0, 50],
-      [0, -10],
-      { extrapolateRight: 'clamp' }
-    );
-
-    return {
-      transform: [{ translateY }],
-    };
-  });
-
-  const handleBack = () => {
-    navigation.goBack();
-  };
-
-  const handleWidgets = () => {
-    navigation.navigate('Widgets');
-  };
-
-  const toggleSearch = () => {
-    setSearchVisible(!searchVisible);
-  };
-
-  const blurIntensity = Platform.OS === 'ios' ? 30 : 80;
-  const tint = isDark ? 'dark' : 'light';
-
-  return (
-    <View style={styles.container}>
-      <BlurView
-        intensity={blurIntensity}
-        tint={tint}
-        style={styles.blurView}
-      >
-        <Animated.View
-          style={[
-            { backgroundColor: colors.overlay + '10' },
-            headerStyle,
-          ]}
-        >
-          <View style={styles.headerContent}>
-            <View style={styles.leftSection}>
-              {showBack && (
-                <TouchableOpacity
-                  onPress={handleBack}
-                  style={styles.backButton}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
+    return (
+      <View style={[styles.container, { paddingTop: Math.max(insets.top, 16) }]} accessibilityRole="header" accessibilityLabel={title}>
+        <BlurView intensity={blurIntensity} tint={tint} style={styles.blurView}>
+          <AnimatedReanimated.View
+            style={[
+              {
+                backgroundColor: isDark
+                  ? 'rgba(28,28,30,0.85)'
+                  : 'rgba(248,249,250,0.85)',
+              },
+              headerStyle,
+            ]}
+          >
+            <View style={styles.headerContent}>
+              <View style={styles.leftSection}>
+                {showBack && (
+                  <IconButton
                     name="chevron-back"
                     size={24}
-                    color={colors.textPrimary}
+                    accessibilityLabel="Go back"
+                    accessibilityHint="Returns to the previous screen"
+                    onPress={handleBack}
                   />
-                </TouchableOpacity>
-              )}
-
-              <Animated.View style={[contentStyle, styles.titleContainer]}>
-                {searchVisible ? (
-                  <TextInput
-                    placeholder="Search photos..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={searchText[0]}
-                    onChangeText={(text) => {
-                      searchText[1](text);
-                      onSearchChange?.(text);
-                    }}
-                    autoFocus
-                    style={[styles.searchInput, { color: colors.textPrimary }]}
-                  />
-                ) : (
-                  <Text
-                    numberOfLines={1}
-                    style={[styles.title, { color: colors.textPrimary }]}
-                  >
-                    {title}
-                  </Text>
                 )}
-              </Animated.View>
 
-              {showSearch && (
-                <TouchableOpacity
-                  onPress={toggleSearch}
-                  style={styles.iconButton}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
+                <AnimatedReanimated.View style={[contentStyle, styles.titleContainer]}>
+                  {searchVisible ? (
+                    <SearchBar
+                      value={searchText}
+                      onChangeText={(text) => {
+                        setSearchText(text);
+                        onSearchChange?.(text);
+                      }}
+                      accessibilityLabel="Search photos"
+                      style={{ flex: 1 }}
+                    />
+                  ) : (
+                    <Text variant="h3" numberOfLines={1} style={styles.title}>
+                      {title}
+                    </Text>
+                  )}
+                </AnimatedReanimated.View>
+
+                {showSearch && (
+                  <IconButton
                     name={searchVisible ? 'close' : 'search'}
                     size={22}
-                    color={colors.textPrimary}
+                    accessibilityLabel={searchVisible ? 'Close search' : 'Open search'}
+                    accessibilityHint={searchVisible ? 'Hides the search bar' : 'Shows the search bar'}
+                    onPress={toggleSearch}
                   />
-                </TouchableOpacity>
-              )}
+                )}
 
-              {showWidgets && (
-                <TouchableOpacity
-                  onPress={handleWidgets}
-                  style={styles.iconButton}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                >
-                  <Ionicons
+                {showWidgets && (
+                  <IconButton
                     name="grid-outline"
                     size={22}
-                    color={colors.textPrimary}
+                    accessibilityLabel="Open widgets"
+                    accessibilityHint="Opens the widgets configuration screen"
+                    onPress={handleWidgets}
                   />
-                </TouchableOpacity>
-              )}
+                )}
+              </View>
             </View>
-          </View>
-        </Animated.View>
-      </BlurView>
-    </View>
-  );
-});
+          </AnimatedReanimated.View>
+        </BlurView>
+      </View>
+    );
+  }
+);
 
 BlurHeader.displayName = 'BlurHeader';
 
@@ -188,7 +160,6 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     zIndex: 50,
-    paddingTop: 40,
   },
   blurView: {
     overflow: 'hidden',
@@ -205,25 +176,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flex: 1,
   },
-  backButton: {
-    marginRight: 12,
-    padding: 4,
-  },
   titleContainer: {
     flex: 1,
   },
   title: {
-    fontSize: 20,
-    fontWeight: 'bold',
-  },
-  searchInput: {
-    fontSize: 16,
-    paddingVertical: 8,
-    flex: 1,
-  },
-  iconButton: {
-    padding: 4,
-    marginLeft: 8,
+    flexShrink: 1,
   },
 });
 

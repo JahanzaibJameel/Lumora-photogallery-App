@@ -1,4 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { BlurView } from 'expo-blur';
 import React, { memo, useState } from 'react';
 import {
@@ -14,6 +15,7 @@ import AnimatedReanimated, {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
+import { RootStackParamList } from '../types/navigation';
 import { IconButton } from './primitives/IconButton';
 import { SearchBar } from './primitives/SearchBar';
 import { Text } from './primitives/Text';
@@ -36,7 +38,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
     onSearchChange,
     scrollY,
   }) => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
     const { isDark } = useTheme();
     const reduceMotion = useReducedMotion();
     const insets = useSafeAreaInsets();
@@ -68,7 +70,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
     });
 
     const handleBack = () => navigation.goBack();
-    const handleWidgets = () => navigation.navigate('Widgets' as never);
+    const handleWidgets = () => navigation.navigate('Widgets');
     const toggleSearch = () => {
       setSearchVisible((v) => !v);
       if (searchVisible) {

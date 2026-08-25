@@ -4,9 +4,11 @@ import { Dimensions } from 'react-native';
 import { Gesture } from 'react-native-gesture-handler';
 import {
   interpolate,
+  runOnJS,
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
   type SharedValue,
 } from 'react-native-reanimated';
 
@@ -37,7 +39,7 @@ export const usePhotoGestures = ({
   }, [reduceMotion]);
 
   const pinchGesture = Gesture.Pinch()
-    .onUpdate((event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    .onUpdate(event => {
       scale.value = Math.max(1, event.scale);
     })
     .onEnd(() => {
@@ -54,7 +56,7 @@ export const usePhotoGestures = ({
     });
 
   const panGesture = Gesture.Pan()
-    .onUpdate((event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    .onUpdate(event => {
       if (scale.value > 1) {
         translateX.value = event.translationX;
         translateY.value = event.translationY;
@@ -68,7 +70,7 @@ export const usePhotoGestures = ({
     });
 
   const swipeGesture = Gesture.Pan()
-    .onUpdate((event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+    .onUpdate(event => {
       if (scale.value === 1) {
         translateX.value = event.translationX;
         opacity.value = interpolate(
@@ -79,41 +81,48 @@ export const usePhotoGestures = ({
         );
       }
     })
-    .onEnd((event: any) => { // eslint-disable-line @typescript-eslint/no-explicit-any
-      if (scale.value === 1) {
-        const shouldNavigate = Math.abs(event.translationX) > SCREEN_WIDTH / 4;
+    .onEnd(event => {
+      if (scale.value !== 1) return;
 
-        if (shouldNavigate) {
-          const direction = event.translationX > 0 ? -1 : 1;
-          const newIndex = currentIndexRef.value + direction;
+      const shouldNavigate = Math.abs(event.translationX) > SCREEN_WIDTH / 4;
 
-          if (newIndex >= 0 && newIndex < photosLength) {
-            goToIndex(newIndex);
-            springTo(translateX, direction * SCREEN_WIDTH);
-            springTo(opacity, 0);
-
-            if (!reduceMotion) {
-              setTimeout(() => {
-                translateX.value = 0;
-                opacity.value = 1;
-              }, 300);
-            } else {
-              translateX.value = 0;
-              opacity.value = 1;
-            }
-          } else {
-            springTo(translateX, 0);
-            springTo(opacity, 1);
-
-            if (Math.abs(event.translationX) > SCREEN_WIDTH / 3) {
-              Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-            }
-          }
-        } else {
-          springTo(translateX, 0);
-          springTo(opacity, 1);
-        }
+      if (!shouldNavigate) {
+        springTo(translateX, 0);
+        springTo(opacity, 1);
+        return;
       }
+
+      const direction = event.translationX > 0 ? -1 : 1;
+      const newIndex = currentIndexRef.value + direction;
+
+      if (newIndex < 0 || newIndex >= photosLength) {
+        springTo(translateX, 0);
+        springTo(opacity, 1);
+
+        if (Math.abs(event.translationX) > SCREEN_WIDTH / 3) {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+        }
+        return;
+      }
+
+      if (reduceMotion) {
+        translateX.value = 0;
+        opacity.value = 1;
+        goToIndex(newIndex);
+        return;
+      }
+
+      // Animate the current photo out first; swap the index and reset values
+      // in the spring's completion callback. A setTimeout-based reset raced
+      // with in-flight gestures and kept firing after unmount.
+      opacity.value = withTiming(0);
+      translateX.value = withSpring(direction * SCREEN_WIDTH, { damping: 20 }, finished => {
+        'worklet';
+        if (!finished) return;
+        translateX.value = 0;
+        opacity.value = 1;
+        runOnJS(goToIndex)(newIndex);
+      });
     });
 
   const animatedStyle = useAnimatedStyle(() => ({

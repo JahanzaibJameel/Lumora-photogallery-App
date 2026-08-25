@@ -1,5 +1,6 @@
 import { fireEvent } from '@testing-library/react-native';
 import React from 'react';
+import { TouchableOpacity } from 'react-native';
 import { renderWithProviders } from '../../test-utils';
 import { IconButton } from './IconButton';
 
@@ -40,7 +41,7 @@ describe('IconButton', () => {
   });
 
   it('passes ref to TouchableOpacity', () => {
-    const ref = React.createRef<any>();
+    const ref = React.createRef<React.ComponentRef<typeof TouchableOpacity>>();
     renderWithProviders(
       <IconButton name="search" ref={ref} accessibilityLabel="Search" />
     );

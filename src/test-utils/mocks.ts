@@ -1,5 +1,3 @@
-import { WidgetData, WidgetConfig } from '../services/widget.service';
-
 export interface MockMediaService {
   getAlbums: jest.Mock;
   getPhotosFromAlbum: jest.Mock;

@@ -1,3 +1,4 @@
+import * as MediaLibrary from 'expo-media-library';
 import { WidgetData, WidgetConfig } from '../services/widget.service';
 import { Photo, Album } from '../types';
 
@@ -61,40 +62,59 @@ export const makeWidgetConfig = (overrides: Partial<WidgetConfig> = {}): WidgetC
   enabled: overrides.enabled ?? true,
 });
 
+type MockMediaLibraryAlbum = MediaLibrary.Album & {
+  createdTime?: number;
+  modificationTime?: number;
+};
+
 export const makeMediaLibraryAlbum = (overrides: Partial<{
   id: string;
   title: string;
   assetCount: number;
+  startTime: number;
+  endTime: number;
   createdTime: number;
   modificationTime: number;
-}> = {}): any => ({
+}> = {}): MockMediaLibraryAlbum => ({
   id: overrides.id ?? 'album-1',
   title: overrides.title ?? 'Test Album',
   assetCount: overrides.assetCount ?? 10,
-  createdTime: overrides.createdTime ?? 1000,
-  modificationTime: overrides.modificationTime ?? 2000,
+  startTime: overrides.startTime ?? 0,
+  endTime: overrides.endTime ?? 0,
+  createdTime: overrides.createdTime,
+  modificationTime: overrides.modificationTime,
 });
+
+type MockMediaLibraryAsset = MediaLibrary.Asset & {
+  fileSize?: number;
+  location?: { latitude?: number; longitude?: number } | null;
+  exif?: Record<string, unknown> | null;
+};
 
 export const makeMediaLibraryAsset = (overrides: Partial<{
   id: string;
   uri: string;
   filename: string;
+  mediaType: MediaLibrary.MediaTypeValue;
   width: number;
   height: number;
   creationTime: number;
   modificationTime: number;
+  duration: number;
   fileSize: number;
-  location: { latitude: number; longitude: number };
-  exif: Record<string, unknown>;
-}> = {}): any => ({
+  location: { latitude: number; longitude: number } | null;
+  exif: Record<string, unknown> | null;
+}> = {}): MockMediaLibraryAsset => ({
   id: overrides.id ?? 'asset-1',
   uri: overrides.uri ?? 'file://photo1.jpg',
   filename: overrides.filename ?? 'photo1.jpg',
+  mediaType: overrides.mediaType ?? MediaLibrary.MediaType.photo,
   width: overrides.width ?? 1080,
   height: overrides.height ?? 720,
   creationTime: overrides.creationTime ?? 3000,
   modificationTime: overrides.modificationTime ?? 4000,
-  fileSize: overrides.fileSize ?? 500000,
-  location: overrides.location ?? undefined,
-  exif: overrides.exif ?? undefined,
+  duration: overrides.duration ?? 0,
+  fileSize: overrides.fileSize,
+  location: overrides.location,
+  exif: overrides.exif,
 });

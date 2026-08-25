@@ -1,6 +1,6 @@
 import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
-import { makeMediaLibraryAlbum, makeMediaLibraryAsset, makeAlbumResult } from '../test-utils';
+import { makeMediaLibraryAlbum, makeMediaLibraryAsset, makeAlbumResult, makePhoto } from '../test-utils';
 import { Album } from '../types';
 import { MediaService, getMediaService } from './media.service';
 
@@ -11,6 +11,12 @@ const mockMediaLibrary = MediaLibrary as jest.Mocked<typeof MediaLibrary>;
 const mockMediaLibraryAlbum = makeMediaLibraryAlbum;
 const mockMediaLibraryAsset = makeMediaLibraryAsset;
 const mockAlbumResult = makeAlbumResult;
+
+// getAssetInfoAsync resolves AssetInfo, whose optional location/exif fields
+// disallow null; the shared fixture intentionally allows them, so narrow the
+// type at this single boundary instead of weakening the factory for Asset use.
+const asAssetInfo = (asset: ReturnType<typeof makeMediaLibraryAsset>) =>
+  asset as unknown as MediaLibrary.AssetInfo;
 
 describe('MediaService', () => {
   let service: MediaService;
@@ -200,7 +206,7 @@ describe('MediaService', () => {
 
   describe('getPhotoById', () => {
     it('fetches and formats a single photo', async () => {
-      mockMediaLibrary.getAssetInfoAsync.mockResolvedValue(mockMediaLibraryAsset({ id: 'p1', uri: 'file://p1.jpg' }));
+      mockMediaLibrary.getAssetInfoAsync.mockResolvedValue(asAssetInfo(mockMediaLibraryAsset({ id: 'p1', uri: 'file://p1.jpg' })));
       const result = await service.getPhotoById('p1');
       expect(result).toMatchObject({ id: 'p1', uri: 'file://p1.jpg' });
     });
@@ -213,7 +219,7 @@ describe('MediaService', () => {
 
     it('includes location and metadata when available', async () => {
       mockMediaLibrary.getAssetInfoAsync.mockResolvedValue(
-        mockMediaLibraryAsset({ location: { latitude: 1, longitude: 2 }, exif: { foo: 'bar' } })
+        asAssetInfo(mockMediaLibraryAsset({ location: { latitude: 1, longitude: 2 }, exif: { foo: 'bar' } }))
       );
       const result = await service.getPhotoById('p1');
       expect(result?.location).toEqual({ latitude: 1, longitude: 2 });
@@ -235,9 +241,9 @@ describe('MediaService', () => {
 
     it('fetches multiple photos and filters nulls', async () => {
       mockMediaLibrary.getAssetInfoAsync
-        .mockResolvedValueOnce(mockMediaLibraryAsset({ id: 'p1' }))
+        .mockResolvedValueOnce(asAssetInfo(mockMediaLibraryAsset({ id: 'p1' })))
         .mockResolvedValueOnce(null as any) // eslint-disable-line @typescript-eslint/no-explicit-any
-        .mockResolvedValueOnce(mockMediaLibraryAsset({ id: 'p3' }));
+        .mockResolvedValueOnce(asAssetInfo(mockMediaLibraryAsset({ id: 'p3' })));
 
       const result = await service.getPhotosByIds(['p1', 'missing', 'p3']);
       expect(result).toHaveLength(2);
@@ -295,16 +301,45 @@ describe('MediaService', () => {
   });
 
   describe('deletePhoto', () => {
-    it('deletes photo and selectively invalidates caches', async () => {
+    it('deletes photo and invalidates only pages containing it', async () => {
       const album = mockAlbumResult({ id: 'a1', count: 5 });
+      const otherAlbum = mockAlbumResult({ id: 'a2', count: 7 });
       (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).photosCache.set('p1_page', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).albumsCache.set('a2', { value: otherAlbum, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1_start_30',
+        { value: { photos: [makePhoto({ id: 'p1', albumId: 'a1' })], endCursor: '', hasNextPage: true }, timestamp: Date.now() }
+      );
+      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1_next_30',
+        { value: { photos: [makePhoto({ id: 'p9', albumId: 'a1' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
+      );
+      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a2_start_30',
+        { value: { photos: [makePhoto({ id: 'p2', albumId: 'a2' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
+      );
 
       await service.deletePhoto('p1');
       expect(mockMediaLibrary.deleteAssetsAsync).toHaveBeenCalledWith(['p1']);
-      expect((service as any).albumsCache.has('a1')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).photosCache.has('a1_start_30')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).photosCache.has('a1_next_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).photosCache.has('a2_start_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
       expect((service as any).albumsCache.get('a1').value.count).toBe(4); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).photosCache.has('p1_page')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).albumsCache.get('a2').value.count).toBe(7); // eslint-disable-line @typescript-eslint/no-explicit-any
+    });
+
+    it('leaves caches untouched when no cached page contains the photo', async () => {
+      const album = mockAlbumResult({ id: 'a1', count: 5 });
+      (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1_start_30',
+        { value: { photos: [makePhoto({ id: 'p9', albumId: 'a1' })], endCursor: '', hasNextPage: true }, timestamp: Date.now() }
+      );
+
+      await service.deletePhoto('unknown-id');
+      expect(mockMediaLibrary.deleteAssetsAsync).toHaveBeenCalledWith(['unknown-id']);
+      expect((service as any).albumsCache.get('a1').value.count).toBe(5); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).photosCache.has('a1_start_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
 
     it('throws on error', async () => {

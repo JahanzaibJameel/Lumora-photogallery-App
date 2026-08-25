@@ -29,11 +29,33 @@ const PHOTOS_CACHE_MAX = 500;
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 500;
 
+// expo-media-library omits several native-only fields from its public types
+// (fileSize/location/exif on assets, createdTime/modificationTime on albums).
+// They are accessed through these single audited intersections instead of
+// scattered `as any` casts, so typos and wrong shapes become compile errors.
+interface AssetRuntimeFields {
+  fileSize?: number;
+  location?: { latitude?: number; longitude?: number } | null;
+  exif?: Record<string, unknown> | null;
+}
+
+interface AlbumRuntimeFields {
+  createdTime?: number;
+  modificationTime?: number;
+}
+
+type NativeAsset = MediaLibrary.Asset & AssetRuntimeFields;
+type NativeAlbum = MediaLibrary.Album & AlbumRuntimeFields;
+
 function assetToPhoto(asset: MediaLibrary.Asset, albumId: string): Photo {
-  const raw = asset as any; // eslint-disable-line @typescript-eslint/no-explicit-any
-  const location = raw.location
-    ? { latitude: raw.location.latitude, longitude: raw.location.longitude }
-    : undefined;
+  const raw = asset as NativeAsset;
+  const latitude = raw.location?.latitude;
+  const longitude = raw.location?.longitude;
+  const location =
+    typeof latitude === 'number' && Number.isFinite(latitude) &&
+    typeof longitude === 'number' && Number.isFinite(longitude)
+      ? { latitude, longitude }
+      : undefined;
 
   return {
     id: asset.id,
@@ -51,12 +73,13 @@ function assetToPhoto(asset: MediaLibrary.Asset, albumId: string): Photo {
 }
 
 function formatAlbum(album: MediaLibrary.Album): Album {
+  const raw = album as NativeAlbum;
   return {
     id: album.id,
     title: album.title || 'Untitled Album',
     count: album.assetCount || 0,
-    createdAt: (album as any).createdTime || Date.now(), // eslint-disable-line @typescript-eslint/no-explicit-any
-    updatedAt: (album as any).modificationTime || Date.now(), // eslint-disable-line @typescript-eslint/no-explicit-any
+    createdAt: raw.createdTime || Date.now(),
+    updatedAt: raw.modificationTime || Date.now(),
   };
 }
 
@@ -257,19 +280,28 @@ export class MediaService {
   async deletePhoto(photoId: string): Promise<boolean> {
     if (isWebPlatform()) return false;
     try {
-      await MediaLibrary.deleteAssetsAsync([photoId]);
+    await MediaLibrary.deleteAssetsAsync([photoId]);
 
-      for (const [key] of this.photosCache) {
-        if (key.includes(photoId)) {
-          this.photosCache.delete(key);
-        }
-      }
+    // Targeted invalidation: drop only the cached pages that actually contain
+    // the deleted photo (cache keys are `${albumId}_${after}_${limit}`, so key
+    // matching alone never hits), and decrement counts solely for albums those
+    // pages belong to instead of every cached album.
+    const affectedAlbumIds = new Set<string>();
+    for (const [key, entry] of this.photosCache) {
+      if (!entry.value.photos.some(photo => photo.id === photoId)) continue;
+      this.photosCache.delete(key);
+      const separator = key.indexOf('_');
+      if (separator > 0) affectedAlbumIds.add(key.slice(0, separator));
+    }
 
+    if (affectedAlbumIds.size > 0) {
       const now = Date.now();
-      for (const [, entry] of this.albumsCache) {
+      for (const [albumId, entry] of this.albumsCache) {
+        if (!affectedAlbumIds.has(albumId)) continue;
         entry.value.count = Math.max(0, entry.value.count - 1);
         entry.timestamp = now;
       }
+    }
 
       return true;
     } catch (error) {

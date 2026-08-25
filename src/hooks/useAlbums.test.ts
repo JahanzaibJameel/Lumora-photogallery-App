@@ -150,8 +150,9 @@ describe('useAlbums', () => {
     const { result } = renderHook(() => useAlbums());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const thumb = await act(async () => {
-      return await result.current.getAlbumThumbnail('album-1');
+    let thumb: string | null | undefined;
+    await act(async () => {
+      thumb = await result.current.getAlbumThumbnail('album-1');
     });
     expect(thumb).toBe('file://cached-thumb.jpg');
     expect(mockLoadCachedThumbnails).toHaveBeenCalledWith('album-1');
@@ -164,8 +165,9 @@ describe('useAlbums', () => {
     const { result } = renderHook(() => useAlbums());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const thumb = await act(async () => {
-      return await result.current.getAlbumThumbnail('album-1');
+    let thumb: string | null | undefined;
+    await act(async () => {
+      thumb = await result.current.getAlbumThumbnail('album-1');
     });
     expect(thumb).toBeNull();
   });
@@ -177,8 +179,9 @@ describe('useAlbums', () => {
     const { result } = renderHook(() => useAlbums());
     await waitFor(() => expect(result.current.loading).toBe(false));
 
-    const thumb = await act(async () => {
-      return await result.current.getAlbumThumbnail('album-1');
+    let thumb: string | null | undefined;
+    await act(async () => {
+      thumb = await result.current.getAlbumThumbnail('album-1');
     });
     expect(thumb).toBeNull();
   });

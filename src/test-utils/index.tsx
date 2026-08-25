@@ -1,6 +1,7 @@
 import { render, renderHook, waitFor, act, fireEvent } from '@testing-library/react-native';
 import React, { ReactElement } from 'react';
 import { ComponentType } from 'react';
+import { ReactTestInstance } from 'react-test-renderer';
 import { ReducedMotionProvider } from '../contexts/ReducedMotionContext';
 import { ThemeProvider } from '../contexts/ThemeContext';
 
@@ -17,10 +18,10 @@ type RenderAPI = ReturnType<typeof render>;
 type ExtendedRenderResult = Omit<RenderAPI,
   'UNSAFE_getByType' | 'UNSAFE_getAllByType' | 'UNSAFE_queryByType' | 'UNSAFE_queryAllByType'
 > & {
-  UNSAFE_getByType: (type: TypeIdentifier) => any,
-  UNSAFE_getAllByType: (type: TypeIdentifier) => any[],
-  UNSAFE_queryByType: (type: TypeIdentifier) => any | null,
-  UNSAFE_queryAllByType: (type: TypeIdentifier) => any[],
+  UNSAFE_getByType: (type: TypeIdentifier) => ReactTestInstance,
+  UNSAFE_getAllByType: (type: TypeIdentifier) => ReactTestInstance[],
+  UNSAFE_queryByType: (type: TypeIdentifier) => ReactTestInstance | null,
+  UNSAFE_queryAllByType: (type: TypeIdentifier) => ReactTestInstance[],
 };
 
 export const renderWithProviders = (

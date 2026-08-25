@@ -1,5 +1,6 @@
 import { fireEvent } from '@testing-library/react-native';
 import React from 'react';
+import type { TextInput } from 'react-native';
 import { renderWithProviders } from '../../test-utils';
 import { SearchBar } from './SearchBar';
 
@@ -82,7 +83,7 @@ describe('SearchBar', () => {
   });
 
   it('passes ref to TextInput', () => {
-    const ref = React.createRef<any>();
+    const ref = React.createRef<TextInput>();
     renderWithProviders(
       <SearchBar value="" onChangeText={jest.fn()} ref={ref} />
     );

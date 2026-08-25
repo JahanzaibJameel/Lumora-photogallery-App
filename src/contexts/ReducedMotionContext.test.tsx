@@ -16,6 +16,8 @@ jest.mock('../services/storage.service', () => ({
 
 const mockedStorage = storageService as jest.Mocked<typeof storageService>;
 
+type CapturedReducedMotionState = ReturnType<typeof useReducedMotionContext>;
+
 const TestConsumer = ({ onState }: { onState: (state: { reduceMotion: boolean; reduceMotionMode: string; setReduceMotionMode: (mode: 'system' | 'always' | 'never') => void }) => void }) => {
   const state = useReducedMotionContext();
   onState({

@@ -1,4 +1,4 @@
-import { makePhoto, makeAlbum, makeWidgetData } from '../test-utils';
+import { makePhoto, makeAlbum } from '../test-utils';
 import { getMediaService } from './media.service';
 import { storageService, StorageKeys } from './storage.service';
 import WidgetService, { WidgetData } from './widget.service';

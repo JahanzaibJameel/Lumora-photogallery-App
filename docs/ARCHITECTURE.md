@@ -1,185 +1,235 @@
 # Architecture
 
-## Overview
+> Source of truth: `src/`. All descriptions below reflect the implemented code as of v1.0.0.
 
-Lumora follows a **layered architecture** with clear separation of concerns. The codebase is organized from the screen layer down to the utility layer, with services acting as singletons for data access.
-
-```
-Screens → Hooks → Services → Native Modules (expo-media-library, MMKV)
-                       ↖ Contexts (Theme, ReducedMotion)
-                       ↖ Components (shared UI)
-```
-
-## Directory Structure
+Lumora uses a **layered architecture** with clear separation of concerns. Data flows downward through screens, hooks, and services into native modules, while cross-cutting concerns (theme, reduced motion, grid density) are supplied through React contexts.
 
 ```text
-src/
-├── app.tsx              # Root app component: providers, status bar, error boundary
-├── index.js             # React Native entry point
-│
-├── components/          # Shared, reusable UI components
-│   ├── AlbumCard.tsx        — Album grid tile with press animations
-│   ├── BlurHashImage.tsx    — Image component with fade-in, blurhash, and expo-image caching
-│   ├── BlurHeader.tsx       — Blurred top header with search toggle and widgets button
-│   ├── EmptyState.tsx       — Permission / empty / error / no-internet states
-│   ├── ErrorBoundary.tsx    — Root error boundary with fallback UI
-│   ├── PhotoGridItem.tsx    — Photo grid tile with enter animation and press feedback
-│   ├── Skeleton.tsx         — Album and photo skeleton placeholders
-│   └── primitives/          # Stateless base components
-│       ├── IconButton.tsx   — Accessible icon button (48×48 minimum touch target)
-│       ├── SearchBar.tsx    — Styled search input with clear button
-│       └── Text.tsx         — Typography primitive with variant support
-│
-├── contexts/            # Cross-cutting React Context providers
-│   ├── ReducedMotionContext.tsx  — System/manual reduced motion with MMKV persistence
-│   └── ThemeContext.tsx         — Light/dark/system theme with MMKV persistence
-│
-├── hooks/               # Custom React hooks (data fetching + UI logic)
-│   ├── useAlbums.ts         # Album list fetching, pagination, deduplication, thumbnail caching
-│   ├── usePermission.tsx    # Media library permission check/request flow
-│   ├── usePhotos.ts         # Photo list fetching, pagination, deletion, thumbnail caching
-│   ├── useReducedMotion.ts  # Convenience hook for reduced motion state
-│   ├── useSearch.ts         # Search history persistence + debounced value
-│   ├── useTheme.tsx         # Convenience hook re-exporting ThemeContext + ThemeProvider
-│   └── useWidgets.ts        # Widget configuration management + periodic refresh
-│
-├── navigation/          # Navigation configuration
-│   └── RootNavigator.tsx  # Stack navigator (React Navigation v7)
-│
-├── screens/             # Top-level screen components
-│   ├── AlbumsScreen.tsx     # Album grid with FlashList, pull-to-refresh, FAB
-│   ├── PhotosScreen.tsx     # Photo grid per album, search integration, multi-select
-│   ├── PhotoViewer.tsx      # Full-screen viewer with pinch/zoom, swipe navigation
-│   └── WidgetsScreen.tsx    # Widget configuration UI with previews
-│
-├── services/            # Business logic and data access singletons
-│   ├── media.service.ts     # MediaService: MediaLibrary singleton with in-memory caching
-│   ├── storage.service.ts   # StorageService: MMKV wrapper + thumbnail/search utilities
-│   └── widget.service.ts    # Widget data: daily memory, random, favorites, album preview
-│
-├── theme/               # Design tokens
-│   ├── colors.ts        # Light/dark color palettes (as const) + ColorTokens type
-│   └── tokens.ts        # Token re-exports
-│
-├── types/               # Shared TypeScript interfaces
-│   ├── index.ts         # Album, Photo interfaces
-│   └── navigation.ts    # RootStackParamList for typed navigation
-│
-└── utils/               # Utility functions
-    └── helpers.ts        # hexToRgba converter
+Screens ──▶ Hooks ──▶ Services ──▶ Native modules (expo-media-library, MMKV)
+                    ▲
+        Contexts (Theme, ReducedMotion, GridSize)
+        Components (shared UI)
 ```
 
-## Layer Descriptions
+---
 
-### 1. App Entry (`app.tsx`, `index.js`)
+## Layer 1 — Entry point
 
-The root `App` component wraps the application in four providers before rendering `MainApp`:
+| File | Responsibility |
+| :--- | :--- |
+| `src/index.js` | `registerRootComponent(App)` (Expo entry) |
+| `src/app.tsx` | Composes providers, then `MainApp` |
 
-1. **ThemeProvider** — Provides light/dark/system theme colors and persistence
-2. **ReducedMotionProvider** — Provides reduced-motion state and configures Reanimated's `ReducedMotionConfig`
-3. **GestureHandlerRootView** — Required root view for `react-native-gesture-handler`
-4. **SafeAreaProvider** — Provides safe area insets
+`App` wraps the tree in four nested providers (outer → inner):
 
-`MainApp` renders a `StatusBar` (with dynamic `barStyle` based on theme) and an `ErrorBoundary` wrapping the `RootNavigator`.
+1. **ThemeProvider** — light/dark/system colors, persisted to MMKV (`StorageKeys.THEMES`)
+2. **ReducedMotionProvider** — motion preference, persisted (`StorageKeys.REDUCED_MOTION`); mounts Reanimated's `ReducedMotionConfig` except when the mode is `system`
+3. **GridSizeProvider** — in-memory grid density (`small`/`medium`/`large`)
+4. **GestureHandlerRootView** — required root for Gesture Handler
 
-### 2. Navigation (`navigation/RootNavigator.tsx`)
+`MainApp` renders `SafeAreaProvider` → `StatusBar` (tint follows theme) → `ErrorBoundary` → `RootNavigator`.
 
-A single **Stack navigator** (React Navigation v7, `@react-navigation/stack`) with four routes:
+> `GestureHandlerRootView` receives `accessible={true}` for screen-reader traversal; the status bar is restored on viewer dismiss.
 
-| Route | Screen | Header | Presentation |
-|-------|--------|--------|--------------|
-| `Albums` (initial) | `AlbumsScreen` | `BlurHeader` with search + widgets buttons | default |
-| `Photos` | `PhotosScreen` | Hidden (`headerShown: false`) | default |
-| `PhotoViewer` | `PhotoViewer` | Hidden (`headerShown: false`) | `modal` |
-| `Widgets` | `WidgetsScreen` | `BlurHeader` with back button | default |
+---
 
-Navigation transitions respect the `useReducedMotion` setting — when enabled, all transitions use zero-duration animations.
+## Layer 2 — Navigation (`navigation/RootNavigator.tsx`)
 
-### 3. Screens → Hooks → Services Data Flow
+A single **stack navigator** (`@react-navigation/stack`, v7) with typed params (`RootStackParamList` in `types/navigation.ts`):
 
+| Route | Screen | Header | Presentation | Motion-aware? |
+| :--- | :--- | :--- | :--- | :--- |
+| `Albums` (initial) | `AlbumsScreen` | `BlurHeader` with search + widgets buttons | default | yes — scroll-linked opacity |
+| `Photos` | `PhotosScreen` | hidden | default | n/a |
+| `PhotoViewer` | `PhotoViewer` | hidden | `modal` (`ModalSlideFromBottomIOS`) | transitions bypassed when reduced motion is on |
+| `Widgets` | `WidgetsScreen` | `BlurHeader` with back button | default | n/a |
+
+When `useReducedMotion()` is true, the navigator applies a zero-duration `transitionSpec` / `forNoAnimation` interpolator so no screen transition animates.
+
+> `RootStackParamList` also declares a `Settings` route with **no registered screen** — it is dead config and should be wired up or removed (see [docs/PROJECT_STATUS.md](./PROJECT_STATUS.md)).
+
+---
+
+## Layer 3 — Screens
+
+| Screen | Key behaviors |
+| :--- | :--- |
+| `AlbumsScreen` | Permission gating, `FlashList` of `AlbumCard`, pull-to-refresh, skeleton placeholders, error/empty states |
+| `PhotosScreen` | `AnimatedFlashList` with scroll-linked header opacity, debounced search (filename/album-ID), density cycling FAB + refresh FAB, `numColumns` 4/3/2, `estimatedItemSize` derived from window width, long-press delete via confirm dialog |
+| `PhotoViewer` (+ `PhotoViewer/`) | `expo-image` full-bleed with pinch/pan/swipe gestures, neighbour prefetch, status-bar hide/restore, Android hardware-back handling, overlay (`BackArrow`, `NavArrow`, `PhotoInfoBadge`) |
+| `WidgetsScreen` | Toggle switches + live previews for the four widget kinds; hourly auto-refresh |
+
+---
+
+## Layer 4 — Hooks (`hooks/`)
+
+Hooks own all data-fetching, pagination, retry, and mutation state.
+
+| Hook | Responsibility |
+| :--- | :--- |
+| `useAlbums` | Batch size 20, offset pagination with id-dedupe merge, `refreshAlbums`, `loadMore`, `retryLoad` (linear backoff `1000ms × retryCount`, capped at `MAX_RETRIES = 2` → `MAX_RETRIES_EXCEEDED`) |
+| `usePhotos(albumId)` | Batch size 30 cursor pagination, `deletePhoto`, refresh clears `MediaService` cache; same retry shape as `useAlbums` |
+| `usePermission` | `undetermined` / `granted` / `denied` / `blocked`; re-checks on `AppState` resume; `openSettings` via `Linking` |
+| `useSearch` | `useSearchHistory` (record/clear against MMKV, capped at 20, deduplicated) + `useDebouncedValue` (default 300 ms) |
+| `useAlbumThumbnail` | Bridges `MediaService.getAlbumThumbnail` into component state with a cancellation guard |
+| `useTheme` / `useReducedMotion`(+`useReduceMotionMode`) | Context accessors with safe fallbacks |
+| `useAccessibility` | `getButtonProps`/`getInputProps`/`enforceTouchTarget` (48 pt) + shared hint map |
+| `useWidgetConfig` | Default three-widget config (daily memory / random photo / favorites); `toggle`/`update`/`add`/`remove` — **state-only, not persisted** |
+| `useWidgetData` | Per-type fetch switch, `refreshAllWidgets` parallelizes enabled widgets via `Promise.all` |
+| `useWidgets` | Composes config + data; hourly `REFRESH_INTERVAL` while mounted |
+
+---
+
+## Layer 5 — Services (`services/`)
+
+All services are singletons wrapping native modules.
+
+### MediaService (`media.service.ts`)
+
+Singleton accessed via `getMediaService()` / `MediaService.getInstance()`. **Web guard:** every read returns an empty result on `Platform.OS === 'web'` (the native module is unavailable), so screens fall back to natural empty states.
+
+**Caches**
+
+| Cache | TTL | Max entries | Notes |
+| :--- | :--- | :--- | :--- |
+| albums | 5 min | 200 | `Map<albumId, CacheEntry<Album>>` |
+| photos pages | 2 min | 500 | key `albumId_after_limit` |
+| thumbnails | 10 min | 300 | `albumId → cover uri` |
+
+- **LRU eviction** — single-pass oldest-timestamp sweep when over max.
+- **In-flight deduplication** — concurrent callers for the same key share one promise; on rejection the slot is released by identity check so later callers don't coalesce onto a rejected promise.
+- **Retry** — `withRetry` retries up to `MAX_RETRIES = 2` after `RETRY_DELAY = 500ms` for transient errors (network/timeout/fetch-failed), then rethrows.
+- **Error seam** — transient failures are categorized via `categorizeError` and dispatched to `errorReporter` before rethrowing.
+
+| Method | Return | Notes |
+| :--- | :--- | :--- |
+| `getAlbums(offset, limit)` | `Album[]` | `includeSmartAlbums`, cached |
+| `getPhotosFromAlbum(albumId, after, limit)` | `{ photos, endCursor, hasNextPage }` | cursor pagination |
+| `getPhotoById(id)` | `Photo \| null` | returns null on failure (reports error) |
+| `getPhotosByIds(ids)` | `Photo[]` | batched `Promise.all` (`getPhotoById`) |
+| `getAlbumThumbnail(albumId)` | `string \| undefined` | deduped + cached cover |
+| `getAlbumById(albumId)` | `Album \| null` | cache-aware single lookup |
+| `deletePhoto(id)` | `boolean` | **targeted invalidation** — drops only pages containing the photo, decrements affected album counts, drops those albums' thumbnails |
+| `getAssetInfo(id)` | asset \| null | thin passthrough (kept for completeness) |
+| `clearCache()` | void | wipes all caches + in-flight map |
+
+> Native-only fields (`fileSize`, `location`, `exif`, `createdTime`, `modificationTime`) are read through audited intersection types (`AssetRuntimeFields` / `AlbumRuntimeFields`) rather than scattered `as any` casts.
+
+### StorageService (`storage.service.ts`)
+
+Synchronous MMKV wrapper (instance id `lumora-storage`). `get<T>` returns `null` on missing key **and** on `JSON.parse` failure (no silent corruption). `save` is synchronous — wrapping it in a promise would be misleading.
+
+`StorageKeys` registry: `THEMES`, `FAVORITES`, `WIDGET_PREFIX`, `SEARCH_HISTORY`, `REDUCED_MOTION`. Search-history helpers (`add`/`clear`/`get`) live here.
+
+### WidgetService (`widget.service.ts`)
+
+Object-literal singleton. A 5-minute TTL `widgetCache` avoids redundant native scans during the hourly refresh.
+
+| Builder | Behavior |
+| :--- | :--- |
+| `getDailyMemory()` | scans first 5 albums (50 photos each) in parallel, filters to same month/day in prior years, keeps 5 |
+| `getRandomPhotos(count)` | parallel album scan, **Fisher–Yates** shuffle (not sort-by-random) |
+| `getAlbumPreview(albumId)` | `getAlbumById` + first 4 photos |
+| `getFavorites()` | reads `StorageKeys.FAVORITES`, batched `getPhotosByIds` (slice 4) |
+
+`saveWidgetData(key, data)` / `getWidgetData(key)` persist to MMKV under `WIDGET_PREFIX`. `clearCache(prefix?)` invalidates by prefix.
+
+---
+
+## Layer 6 — Contexts (`contexts/`)
+
+| Context | State | Persistence |
+| :--- | :--- | :--- |
+| `ThemeContext` | `themeMode` (`light`/`dark`/`system`), derived `isDark`, typed `ColorTokens` | MMKV `THEMES` |
+| `ReducedMotionContext` | `reduceMotion` boolean, `reduceMotionMode` (`system`/`always`/`never`) | MMKV `REDUCED_MOTION` |
+| `GridSizeContext` | `gridSize` (`small`/`medium`/`large`), `cycleGridSize` | **none** (resets on relaunch) |
+
+All three expose a safe fallback when consumed outside the provider, and memoize their value object to avoid re-rendering the whole tree.
+
+---
+
+## Layer 7 — Components (`components/`)
+
+Shared UI. Composite components are `memo`-wrapped and use `useCallback` handlers.
+
+| Component | Notes |
+| :--- | :--- |
+| `AlbumCard` | `LinearGradient` cover + haptic press feedback + spring scale |
+| `BlurHashImage` | `expo-image` wrapper, `memory-disk` cache, fade-in |
+| `BlurHeader` | `expo-blur` `BlurView`, platform-aware tint, search toggle, back/widgets buttons, scroll-linked animated opacity/translate, 48 pt targets |
+| `EmptyState` | variants `permission` / `empty` / `error` / `no-internet`; accepts `AppError` or string message; `accessibilityLiveRegion` |
+| `ErrorBoundary` | class component, themed fallback, optional custom fallback, reports `componentStack` to `errorReporter` |
+| `PhotoGridItem` | animated enter, haptic, press feedback |
+| `Skeleton` | `AlbumSkeleton` / `PhotoGridSkeleton` pulse; static opacity when reduced motion |
+| `primitives/` | `IconButton` (48 pt, `forwardRef`), `SearchBar` (clear button, `forwardRef`), `Text` (variants + color tokens) |
+
+---
+
+## Layer 8 — Theme tokens (`theme/`)
+
+| Token file | Exports |
+| :--- | :--- |
+| `colors.ts` | `lightColors` / `darkColors` (`as const`, ~37 tokens each incl. semantic containers) + `ColorTokens = typeof lightColors` |
+| `spacing.ts` | `xs 4` / `sm 8` / `md 16` / `lg 24` / `xl 32` / `xxl 48` |
+| `typography.ts` | `h1`–`h3`, `title`, `body`, `bodySmall`, `caption`, `overline` |
+| `borderRadius.ts` / `elevation.ts` / `opacity.ts` | scale constants |
+| `tokens.ts` | re-export aggregator (`theme` const) |
+
+Styling is **plain `StyleSheet.create`** (zero-runtime, first-class web support) — see decisions below.
+
+---
+
+## Layer 9 — Types (`types/`)
+
+- `Album` — `id, title, count, thumbnailUri?, createdAt, updatedAt`
+- `Photo` — `id, uri, filename, width, height, size, albumId, createdAt, modifiedAt, location?, metadata?, title?` (`title` is declared but never populated — known gap)
+- `RootStackParamList` — typed navigation params (see Layer 2)
+
+---
+
+## Error pipeline
+
+```text
+throw / native failure
+   │
+   ▼
+categorizeError(...) ──▶ AppError { category, severity, code, context }
+   │                          │
+   │                          ▼
+   │                    errorReporter.capture()  ──▶ listeners (Sentry = commented stub)
+   ▼
+hook setState(error)  ──▶ EmptyState / ErrorBoundary (data-driven messaging, retry)
 ```
-Screen (presentational)
-  ↓ uses
-Hook (data fetching, state, side effects)
-  ↓ calls
-Service (singleton, caching, native module access)
-  ↓ wraps
-Native Module (expo-media-library, MMKV)
-```
 
-**Example: AlbumsScreen**
-```
-AlbumsScreen → useAlbums() → MediaService.getAlbums() → MediaLibrary.getAlbumsAsync()
-                              MediaService.getAlbums() → MediaLibrary.getAssetsAsync() (for thumbnails)
-```
+`errorReporter` is a local event bus; there is **no crash-reporting backend wired** (the Sentry integration point is documented but commented out).
 
-### 4. Services
+---
 
-#### MediaService (`services/media.service.ts`)
-
-- **Singleton** pattern via `getInstance()`
-- Two in-memory caches:
-  - `albumsCache: Map<string, Album>` — populated by `getAlbums()` and `getAlbumById()`
-  - `photosCache: Map<string, PhotoPage>` — keyed by `albumId_after_limit`, populated by `getPhotosFromAlbum()`
-- `getAlbums(offset, limit)` — fetches all albums via `MediaLibrary.getAlbumsAsync`, then fetches a thumbnail for each via `getAssetsAsync`. Caches results.
-- `getPhotosFromAlbum(albumId, after, limit)` — cursor-based pagination. Returns `{ photos, endCursor, hasNextPage }`. Caches result by key.
-- `getPhotosByIds(photoIds)` — **batched** photo lookup using `Promise.all` (eliminates N+1 sequential queries).
-- `getAlbumById(albumId)` — cache-aware single album lookup (avoids fetching all albums).
-- `getPhotoById(photoId)` — single photo info via `MediaLibrary.getAssetInfoAsync`.
-- `deletePhoto(photoId)` — deletes via `MediaLibrary.deleteAssetsAsync` and clears caches.
-- `clearCache()` — clears all caches (used on refresh).
-
-#### StorageService (`services/storage.service.ts`)
-
-- Wraps `react-native-mmkv` with `JSON.stringify`/`JSON.parse`
-- Type-safe generic `get<T>(key): T | null` that returns `null` on parse failure (not a raw string)
-- Additional utilities:
-  - `cacheThumbnails(albumId, uri[])` — stores first 4 thumbnail URIs per album
-  - `loadCachedThumbnails(albumId): string[] | null` — reads cached thumbnails
-  - `addSearchHistory(query)`, `getSearchHistory()`, `clearSearchHistory()` — MMKV-backed search history
-- `StorageKeys` — central registry of all storage keys
-
-#### WidgetService (`services/widget.service.ts`)
-
-- Manages widget data: daily memory, random photo, album preview, favorites
-- **5-minute in-memory cache with TTL** prevents redundant native media-library queries during periodic refreshes
-- `getDailyMemory()` — parallelizes album photo fetches with `Promise.all` across 5 albums
-- `getRandomPhotos(count)` — parallelizes album photo fetches with `Promise.all` across 3 albums
-- `getFavorites()` — uses batched `getPhotosByIds` instead of sequential `getPhotoById` calls
-- `getAlbumPreview(albumId)` — uses targeted `getAlbumById` instead of fetching all albums
-- `saveWidgetData()` / `getWidgetData()` — persists widget data to MMKV
-- `clearCache(prefix?)` — explicit cache invalidation
-
-### 5. Contexts
-
-#### ThemeContext
-- Manages `themeMode` (`'light' | 'dark' | 'system'`) persisted to MMKV
-- Derives effective theme from system color scheme + manual override
-- Provides typed `ColorTokens` colors to the entire component tree
-- `useTheme()` hook provides a safe fallback when used outside provider
-
-#### ReducedMotionContext
-- Manages `reduceMotionMode` (`'system' | 'always' | 'never'`) persisted to MMKV
-- Integrates with Reanimated's `ReducedMotionConfig`
-- `useReducedMotion()` returns a boolean — true when motion should be reduced
-
-### 6. Types (`types/`)
-
-- `Album` — id, title, count, thumbnailUri, createdAt, updatedAt
-- `Photo` — id, uri, filename, width, height, size, albumId, createdAt, modifiedAt, location?, metadata?, title?
-- `RootStackParamList` — typed navigation params for Stack navigator
-
-## Performance Characteristics
+## Performance characteristics
 
 | Concern | Approach |
-|---------|----------|
-| List rendering | FlashList with `estimatedItemSize`, `removeClippedSubviews`, `onEndReachedThreshold` |
-| Image loading | `expo-image` with `cachePolicy="memory-disk"` |
-| Scroll animations | `Animated.createAnimatedComponent(FlashList)` with Reanimated shared values |
-| Media queries | In-memory caching in MediaService; batched `getPhotosByIds` for favorites |
-| Widget data | 5-minute TTL in-memory cache; parallel `Promise.all` for album queries |
-| Permission | Single `usePermission` hook checks once on mount, requests on demand |
+| :--- | :--- |
+| List rendering | FlashList, `estimatedItemSize` from window width, `removeClippedSubviews`, `onEndReachedThreshold={0.5}` |
+| Image loading | expo-image `cachePolicy="memory-disk"`; neighbour prefetch in viewer |
+| Scroll animation | `Animated.createAnimatedComponent(FlashList)` + shared values; reduced-motion bypass |
+| Media queries | TTL + LRU caches, in-flight dedup, batched `getPhotosByIds`, parallel `Promise.all` album scans |
+| Deletion | targeted cache invalidation (no full purge) |
+| Permission | single `usePermission` check, re-query on app resume |
 
-## Testing
+---
 
-Tests use Jest with the `jest-expo` preset. The `jest.setup.js` file at the project root provides comprehensive mocks for all native modules and libraries (Reanimated, MMKV, MediaLibrary, FlashList, GestureHandler, SafeArea, Navigation). The single test in `__tests__/App.test.tsx` renders the full app shell and verifies the Albums screen renders correctly with an empty media library mock.
+## Key design decisions
+
+- **StyleSheet over NativeWind / CSS-in-JS.** Zero runtime, strong TS support, web-compatible, no extra dependency.
+- **MMKV (synchronous).** Synchronous `save`/`get` — no fake promises. Favorites, theme, reduced-motion, search history, and widget data persist here.
+- **Singleton services with TTL + LRU + in-flight dedup.** Avoids redundant native bridge calls and thundering-herd refetch on FlashList cell recycling.
+- **Typed error taxonomy.** Data-driven retry and messaging instead of string matching at the view layer.
+- **Targeted cache invalidation on delete.** Only affected pages/albums/thumbnails are dropped, so a delete doesn't cascade into a full refetch.
+- **Fisher–Yates shuffle** for the random-photo widget (unbiased vs. `sort(() => Math.random())`).
+- **Worklet-driven gestures + reduced-motion bypass.** True native feel; every animation has a zero-motion path.
+
+---
+
+## Testing surface
+
+Tests are colocated (`src/**/*.test.tsx?`) plus one integration test (`__tests__/App.test.tsx`). `jest.setup.js` mocks Reanimated, MMKV, expo-media-library, FlashList, Gesture Handler, Safe Area, and Navigation so the suite exercises real app code against deterministic platform fakes. See [docs/TESTING.md](./TESTING.md).

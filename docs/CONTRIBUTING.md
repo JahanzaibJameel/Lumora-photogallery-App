@@ -1,145 +1,104 @@
 # Contributing to Lumora
 
-Welcome! This document covers the development workflow for contributing to Lumora.
+Thanks for contributing. This guide covers the workflow used by the repo.
 
 ## Prerequisites
 
-- **Node.js** 20+
-- **npm** 10+
-- **Expo CLI** (optional, available via `npx expo`)
-- **iOS**: macOS + Xcode 15+ (for iOS simulator builds)
-- **Android**: Android Studio with SDK 34+ (for Android emulator builds)
-- **Web**: Any modern browser (development via `w` key in Expo)
+- **Node.js 20+** and **npm 10+** (CI pins Node 20.x)
+- Expo CLI (run via `npx expo`)
+- iOS: macOS + Xcode (simulator) · Android: Android Studio + emulator · Web: any modern browser
 
-## Getting Started
+> The repo pins `.npmrc` with `legacy-peer-deps=true`. Keep it so resolution matches CI.
+
+## Getting started
 
 ```bash
-# Clone and install
-git clone https://github.com/Jahanzaibjameel/lumora-photogallery-app
-cd lumora-photogallery-app
+git clone https://github.com/JahanzaibJameel/Lumora-photogallery-App.git
+cd Lumora-photogallery-App
 npm install
-
-# Start the dev server
-npx expo start
+npm start
 ```
 
-In the Expo dev menu, press:
-- `i` — iOS simulator
-- `a` — Android emulator
-- `w` — Web browser
-- `j` — JavaScript bundle (debug)
+In the Expo dev menu: `i` = iOS, `a` = Android, `w` = Web.
 
-## Code Style & Standards
+## Required gates (must pass before push)
 
-### TypeScript
-- **Strict mode** is enabled (`tsconfig.json` extends `expo/tsconfig.base`)
-- All source files must be type-safe — avoid `any` escapes
-- Use explicit return types on exported functions
-- `Photo` and `Album` interfaces in `src/types/index.ts` are the canonical types — reuse them instead of inline shapes
+```bash
+npm run lint          # ESLint flat config (eslint.config.mjs) — 0 errors expected
+npm run type-check     # tsc --noEmit --skipLibCheck (strict)
+npm test               # or: npm run test:coverage
+```
 
-### ESLint
-- Run `npm run lint` or `npx expo lint` before committing
-- ESLint config is in `eslint.config.js` (flat config format)
-- `no-unused-vars` is set to warn with `argsIgnorePattern: '^_'`
+CI runs all of the above plus a web export on pushes/PRs to `main`.
 
-### Formatting
-- Prettier is installed (`prettier` in devDependencies) but no config file exists yet
-- Follow the existing code style: 2-space indent, single quotes, no semicolons (Expo default), trailing commas
+## Code style
 
-## Architecture Guidelines
+- **TypeScript** strict mode (`tsconfig.json` extends `expo/tsconfig.base`). Avoid `any`; the codebase uses audited intersection types for native-only fields (`src/services/media.service.ts`).
+- **ESLint** flat config (`eslint.config.mjs`). Notable rules: `import/no-unresolved` (error), `import/order` (warn, alphabetize asc), `@typescript-eslint/no-explicit-any` (warn), `no-unused-vars` off → `@typescript-eslint/no-unused-vars` warn (ignores `^_`).
+- **Formatting:** no Prettier config yet — match the prevailing style (2-space indent, single quotes, no semicolons, trailing commas).
+- **Components:** `memo()` + `displayName`; `useCallback` for handlers; `StyleSheet.create` for static styles; `accessibilityRole` + `accessibilityLabel` (+ `accessibilityHint` where useful) on interactive elements; `useReducedMotion()` to gate animations.
 
-Lumora follows a **layered architecture** (see [Architecture](./ARCHITECTURE.md)):
+## Architecture guidelines
 
-1. **Screens** compose components and consume hooks
-2. **Hooks** encapsulate data fetching and state logic, calling services
-3. **Services** are singletons that wrap native modules (MMKV, MediaLibrary)
-4. **Components** are reusable UI — use `memo` with `displayName`
-5. **Contexts** provide cross-cutting concerns (Theme, ReducedMotion)
+Lumora is a layered architecture — see [ARCHITECTURE.md](./ARCHITECTURE.md).
 
-### Component Patterns
-- Wrap all components in `memo()` with a custom `displayName`
-- Use `useCallback` for all event handlers
-- Use `StyleSheet.create` for static styles — avoid inline objects in render
-- Always set `accessibilityRole` and `accessibilityLabel` on interactive elements
-- Use `useReducedMotion()` to gate all animations
+- **Screens** compose components and consume hooks.
+- **Hooks** encapsulate data/state, calling services.
+- **Services** are singletons wrapping native modules (MMKV, MediaLibrary). Use `getMediaService()` / `WidgetService`.
+- **Components** are reusable UI; read theme via `useTheme()`.
 
-### Data Layer
-- `MediaService` is a singleton — use `getMediaService()` to access it
-- Respect the in-memory cache in `MediaService` — don't bypass it for reads
-- For batch photo lookups, use `MediaService.getPhotosByIds()` (not a loop of `getPhotoById`)
-- For single album lookups, use `MediaService.getAlbumById()` (not `getAlbums().find()`)
-- `WidgetService` has a 5-minute TTL cache — call `WidgetService.clearCache()` after data mutations
+### Data layer
+
+- Honor `MediaService` caches; use `getPhotosByIds()` for batch reads (not a loop of `getPhotoById`).
+- For a single album, use `getAlbumById()` (not `getAlbums().find()`).
+- After mutations, call `WidgetService.clearCache(prefix?)` so the next fetch is fresh.
+- Persist user data through `StorageService` / `StorageKeys` — MMKV is synchronous.
 
 ## Testing
 
-```bash
-npm test              # Run all tests
-npm run test:watch    # Watch mode
-npm run test:coverage # Coverage report
-```
+- Tests are colocated (`src/**/*.test.tsx?`) plus `__tests__/App.test.tsx`.
+- Coverage floors are **70%** (branches/functions/lines/statements) in `jest.config.js`.
+- Reuse `src/test-utils` (`makePhoto`, `makeAlbum`, `makeMock*`, `renderWithProviders`).
+- Prefer asserting on `accessibilityLabel`.
+- Use `@testing-library/react-native` for components, `renderHook` for hooks, and `jest.setup.js` mocks for native modules.
 
-- Tests live in `__tests__/` (integration)
-- Test setup is in `jest.setup.js` — comprehensive mocks for all native modules
-- Add new unit tests for hooks and services
-- Coverage threshold target: 80% global
+## Commit & branch conventions
 
-### Writing Tests
-- Mock native modules via `jest.setup.js` only if broadly reusable
-- Use `@testing-library/react-native` for component tests
-- Test hooks with `@testing-library/react-hooks` pattern (render + act)
-- Services can be tested by mocking the underlying native modules
-
-## Commit Conventions
-
-```bash
-git checkout -b feature/short-description
-# ... make changes ...
-git add .
-npm run lint && npm run type-check && npm test
-git commit -m "feat: brief description of the change"
-git push origin feature/short-description
-```
-
-### Commit Format
 Use [Conventional Commits](https://www.conventionalcommits.org/):
 
+```bash
+git checkout -b feat/short-description
+# make changes, run gates
+npm run lint && npm run type-check && npm test
+git commit -m "feat: brief description"
+git push -u origin feat/short-description
+```
+
 | Type | Use |
-|------|-----|
+| :--- | :--- |
 | `feat` | New feature |
 | `fix` | Bug fix |
-| `refactor` | Code restructuring, no behavior change |
+| `refactor` | Restructure, no behavior change |
 | `perf` | Performance improvement |
 | `docs` | Documentation only |
-| `test` | Test additions or fixes |
-| `chore` | Tooling, config, dependencies |
-| `style` | Formatting, whitespace (no code logic change) |
+| `test` | Test additions/fixes |
+| `chore` | Tooling, config, deps |
 
-### Pre-commit Checklist
-- [ ] `npm run lint` passes with zero warnings
-- [ ] `npm run type-check` passes (strict TypeScript)
-- [ ] `npm test` passes
-- [ ] Changes are covered by tests where applicable
+## Pre-PR checklist
 
-## CI Pipeline
+- [ ] `npm run lint` shows 0 errors
+- [ ] `npm run type-check` passes
+- [ ] `npm test` (or coverage) passes
+- [ ] New behavior is covered by tests where practical
+- [ ] Docs updated if behavior/API changed (see `README.md`, `docs/`)
 
-The CI pipeline (`.github/workflows/ci.yml`) runs on every push and PR to `main`:
+## Pull requests
 
-1. Install dependencies (`npm install --legacy-peer-deps`)
-2. ESLint (`npm run lint`)
-3. TypeScript check (`npm run type-check`)
-4. Jest tests (`npm test`)
-5. Web build (`expo export --platform web`) — on `main` branch only
+Open against `main`. Ensure CI is green, then request review.
 
-## Pull Requests
+## Development tips
 
-1. Open a PR against the `main` branch
-2. Ensure all CI checks pass
-3. Request review from a team member
-4. Address feedback before merging
-
-## Development Tips
-
-- **Expo DevTools**: Run `npx expo start --dev-client` for native module debugging
-- **Clear cache**: `npx expo start -c` clears the Metro bundler cache
-- **Reset project**: `npm run reset-project` resets to a clean state
-- **Logbox**: In dev, shake the device or press `d` in the terminal to toggle the debug menu
+- Clear Metro cache: `npx expo start -c`
+- Reset scaffold: `npm run reset-project`
+- Dev menu: `d` in terminal (or shake on device)
+- Windows note: the New Architecture + native modules build cleanly; use PowerShell or the WSL shell consistently to avoid path/case mismatches.

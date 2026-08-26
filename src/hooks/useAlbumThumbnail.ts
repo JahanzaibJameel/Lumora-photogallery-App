@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails } from '../services/storage.service';
 
+// MediaService owns thumbnail caching and deduplication; this hook only
+// bridges a resolved cover URI into component state.
 export const useAlbumThumbnail = (albumId: string, initialUri?: string) => {
   const [uri, setUri] = useState(initialUri);
 
@@ -12,7 +13,6 @@ export const useAlbumThumbnail = (albumId: string, initialUri?: string) => {
     getMediaService().getAlbumThumbnail(albumId).then(result => {
       if (!cancelled && result) {
         setUri(result);
-        cacheThumbnails(albumId, [result]);
       }
     });
 

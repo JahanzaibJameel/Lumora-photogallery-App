@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails } from '../services/storage.service';
 import { Photo } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { AppError, ErrorCategory, ErrorSeverity, categorizeError } from '../utils/errors';
@@ -63,9 +62,6 @@ export const usePhotos = (albumId: string) => {
       }));
 
       endCursor.current = result.endCursor ?? undefined;
-
-      const thumbnailUris = result.photos.map(photo => photo.uri);
-      await cacheThumbnails(albumId, thumbnailUris.slice(0, 4));
 
     } catch (err) {
       const appError = categorizeError(err);

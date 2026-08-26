@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails, loadCachedThumbnails } from '../services/storage.service';
 import { Album } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { AppError, ErrorCategory, ErrorSeverity, categorizeError } from '../utils/errors';
@@ -112,24 +111,6 @@ export const useAlbums = () => {
     loadAlbums(true);
   }, [loadAlbums]);
 
-  const getAlbumThumbnail = useCallback(async (albumId: string) => {
-    try {
-      const cached = await loadCachedThumbnails(albumId);
-      if (cached && cached.length > 0) {
-        return cached[0];
-      }
-      const mediaService = getMediaService();
-      const thumbnail = await mediaService.getAlbumThumbnail(albumId);
-      if (thumbnail) {
-        await cacheThumbnails(albumId, [thumbnail]);
-      }
-      return thumbnail;
-    } catch (error) {
-      errorReporter.capture(error, { hook: 'useAlbums', action: 'getAlbumThumbnail', albumId });
-      return null;
-    }
-  }, []);
-
   return {
     albums: state.albums,
     loading: state.loading,
@@ -139,6 +120,5 @@ export const useAlbums = () => {
     loadMore,
     refreshAlbums,
     retryLoad,
-    getAlbumThumbnail,
   };
 };

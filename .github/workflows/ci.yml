@@ -29,9 +29,9 @@ jobs:
         cache: 'npm'
 
     - name: Install dependencies
-      # npm ci honors the lockfile exactly; --legacy-peer-deps matches local
-      # installs because react-native-worklets declares a narrower peer range.
-      run: npm ci --legacy-peer-deps
+      # npm ci honors the lockfile exactly; the resolved tree has no conflicting
+      # peer ranges since react-native-worklets was removed.
+      run: npm ci
 
     - name: Run ESLint linter
       run: npm run lint

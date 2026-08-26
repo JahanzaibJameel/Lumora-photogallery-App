@@ -15,12 +15,12 @@ describe('useWidgets', () => {
     jest.useRealTimers();
     jest.spyOn(Date, 'now').mockReturnValue(NOW);
 
-    mockWidgetService.getWidgetData.mockResolvedValue(null);
+    mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue(makeWidgetData({ type: 'daily_memory', title: 'Daily Memory' }));
     mockWidgetService.getRandomPhotos.mockResolvedValue(makeWidgetData({ type: 'random_photo', title: 'Featured Photo' }));
     mockWidgetService.getAlbumPreview.mockResolvedValue(makeWidgetData({ type: 'album_preview', title: 'Album Preview' }));
     mockWidgetService.getFavorites.mockResolvedValue(makeWidgetData({ type: 'favorites', title: 'Favorites' }));
-    mockWidgetService.saveWidgetData.mockResolvedValue(undefined);
+    mockWidgetService.saveWidgetData.mockReturnValue(undefined);
   });
 
   afterEach(() => {
@@ -52,9 +52,9 @@ describe('useWidgets', () => {
 
   it('loads cached widget data for enabled widgets', async () => {
     const dailyData = makeWidgetData({ type: 'daily_memory', title: 'Daily Memory' });
-    mockWidgetService.getWidgetData.mockResolvedValueOnce(dailyData);
-    mockWidgetService.getWidgetData.mockResolvedValueOnce(null);
-    mockWidgetService.getWidgetData.mockResolvedValueOnce(null);
+    mockWidgetService.getWidgetData.mockReturnValueOnce(dailyData);
+    mockWidgetService.getWidgetData.mockReturnValueOnce(null);
+    mockWidgetService.getWidgetData.mockReturnValueOnce(null);
 
     const { result } = renderHook(() => useWidgets());
     await waitFor(() => expect(result.current.loading).toBe(false));

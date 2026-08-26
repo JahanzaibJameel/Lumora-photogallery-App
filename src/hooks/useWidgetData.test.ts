@@ -18,7 +18,7 @@ const makeWidget = (overrides: Partial<import('../services/widget.service').Widg
 describe('useWidgetData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockWidgetService.getWidgetData.mockResolvedValue(null);
+    mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue({
       type: 'daily_memory',
       photos: [],
@@ -47,8 +47,8 @@ describe('useWidgetData', () => {
       subtitle: 'No favorites yet',
       updatedAt: Date.now(),
     });
-    mockWidgetService.saveWidgetData.mockResolvedValue(undefined);
-    (mockWidgetService.clearCache as jest.Mock).mockResolvedValue(undefined);
+    mockWidgetService.saveWidgetData.mockReturnValue(undefined);
+    (mockWidgetService.clearCache as jest.Mock).mockReturnValue(undefined);
   });
 
   it('returns the expected hook shape', () => {

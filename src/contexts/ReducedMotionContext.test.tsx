@@ -32,7 +32,6 @@ describe('ReducedMotionProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockedStorage.get.mockReturnValue(null);
-    mockedStorage.save.mockResolvedValue(undefined);
   });
 
   it('provides default reduceMotion false and mode system when no saved preference', () => {

@@ -1,17 +1,14 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails } from '../services/storage.service';
 import { useAlbumThumbnail } from './useAlbumThumbnail';
 
 jest.mock('../services/media.service');
-jest.mock('../services/storage.service');
 
 const mockGetMediaService = getMediaService as jest.MockedFunction<typeof getMediaService>;
 
 describe('useAlbumThumbnail', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (cacheThumbnails as jest.MockedFunction<typeof cacheThumbnails>).mockResolvedValue(undefined);
   });
 
   it('returns initialUri when provided', () => {
@@ -22,22 +19,23 @@ describe('useAlbumThumbnail', () => {
   it('returns undefined when no initialUri and no thumbnail found', async () => {
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: jest.fn().mockResolvedValue(undefined),
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any);
 
     const { result } = renderHook(() => useAlbumThumbnail('album-1'));
     await waitFor(() => expect(result.current).toBeUndefined());
   });
 
-  it('fetches and caches thumbnail when no initialUri', async () => {
+  it('fetches thumbnail through MediaService when no initialUri', async () => {
     const mockGetThumbnail = jest.fn().mockResolvedValue('file://thumb.jpg');
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: mockGetThumbnail,
+      // eslint-disable-line @typescript-eslint/no-explicit-any
     } as any);
 
     const { result } = renderHook(() => useAlbumThumbnail('album-1'));
     await waitFor(() => expect(result.current).toBe('file://thumb.jpg'));
     expect(mockGetThumbnail).toHaveBeenCalledWith('album-1');
-    expect(cacheThumbnails).toHaveBeenCalledWith('album-1', ['file://thumb.jpg']);
   });
 
   it('ignores stale response when component unmounts', async () => {
@@ -48,6 +46,7 @@ describe('useAlbumThumbnail', () => {
 
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: jest.fn().mockReturnValue(thumbPromise),
+      // eslint-disable-line @typescript-eslint/no-explicit-any
     } as any);
 
     const { result, unmount } = renderHook(() => useAlbumThumbnail('album-1'));
@@ -61,6 +60,5 @@ describe('useAlbumThumbnail', () => {
     });
 
     expect(result.current).toBeUndefined();
-    expect(cacheThumbnails).not.toHaveBeenCalled();
   });
 });

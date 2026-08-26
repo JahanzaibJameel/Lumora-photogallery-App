@@ -1,15 +1,11 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails, loadCachedThumbnails } from '../services/storage.service';
 import { makeAlbum, makeFullBatch } from '../test-utils';
 import { useAlbums } from './useAlbums';
 
 jest.mock('../services/media.service');
-jest.mock('../services/storage.service');
 
 const mockGetMediaService = getMediaService as jest.MockedFunction<typeof getMediaService>;
-const mockCacheThumbnails = cacheThumbnails as jest.MockedFunction<typeof cacheThumbnails>;
-const mockLoadCachedThumbnails = loadCachedThumbnails as jest.MockedFunction<typeof loadCachedThumbnails>;
 
 const mockMediaService = {
   getAlbums: jest.fn(),
@@ -22,8 +18,6 @@ describe('useAlbums', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    mockCacheThumbnails.mockResolvedValue(undefined);
-    mockLoadCachedThumbnails.mockReturnValue(null);
     mockMediaService.getAlbums.mockResolvedValue([]);
   });
 
@@ -130,61 +124,6 @@ describe('useAlbums', () => {
     const ids = result.current.albums.map((a) => a.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
-
-  it('does not eagerly cache thumbnails (delegated to useAlbumThumbnail)', async () => {
-    mockMediaService.getAlbums.mockResolvedValue([
-      makeAlbum('a1'),
-      makeAlbum('a2'),
-    ]);
-
-    const { result: _result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(mockMediaService.getAlbums).toHaveBeenCalled());
-
-    expect(mockCacheThumbnails).not.toHaveBeenCalled();
-  });
-
-  it('getAlbumThumbnail returns cached thumbnail', async () => {
-    mockMediaService.getAlbums.mockResolvedValue([]);
-    mockLoadCachedThumbnails.mockReturnValue(['file://cached-thumb.jpg']);
-
-    const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    let thumb: string | null | undefined;
-    await act(async () => {
-      thumb = await result.current.getAlbumThumbnail('album-1');
-    });
-    expect(thumb).toBe('file://cached-thumb.jpg');
-    expect(mockLoadCachedThumbnails).toHaveBeenCalledWith('album-1');
-  });
-
-  it('getAlbumThumbnail returns null when no cache', async () => {
-    mockMediaService.getAlbums.mockResolvedValue([]);
-    mockLoadCachedThumbnails.mockReturnValue(null);
-
-    const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    let thumb: string | null | undefined;
-    await act(async () => {
-      thumb = await result.current.getAlbumThumbnail('album-1');
-    });
-    expect(thumb).toBeNull();
-  });
-
-  it('getAlbumThumbnail returns null on error', async () => {
-    mockMediaService.getAlbums.mockResolvedValue([]);
-    mockLoadCachedThumbnails.mockImplementation(() => { throw new Error('cache read failed'); });
-
-    const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.loading).toBe(false));
-
-    let thumb: string | null | undefined;
-    await act(async () => {
-      thumb = await result.current.getAlbumThumbnail('album-1');
-    });
-    expect(thumb).toBeNull();
-  });
 });
 
 describe('useAlbums retry behavior', () => {
@@ -192,8 +131,6 @@ describe('useAlbums retry behavior', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    mockCacheThumbnails.mockResolvedValue(undefined);
-    mockLoadCachedThumbnails.mockReturnValue(null);
     mockMediaService.getAlbums.mockRejectedValue(new Error('Library error'));
   });
 

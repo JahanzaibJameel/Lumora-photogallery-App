@@ -1,15 +1,10 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
 import { getMediaService } from '../services/media.service';
-import { cacheThumbnails } from '../services/storage.service';
 import { makePhoto } from '../test-utils';
 import { usePhotos } from './usePhotos';
 
 jest.mock('../services/media.service');
-jest.mock('../services/storage.service');
-
 const mockGetMediaService = getMediaService as jest.MockedFunction<typeof getMediaService>;
-const mockCacheThumbnails = cacheThumbnails as jest.MockedFunction<typeof cacheThumbnails>;
-
 const mockMediaService = {
   getPhotosFromAlbum: jest.fn(),
   clearCache: jest.fn(),
@@ -20,7 +15,6 @@ describe('usePhotos', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    mockCacheThumbnails.mockResolvedValue(undefined);
     mockMediaService.getPhotosFromAlbum.mockResolvedValue({
       photos: [],
       endCursor: null,
@@ -170,19 +164,6 @@ describe('usePhotos', () => {
     await expect(result.current.deletePhoto('p1')).rejects.toThrow('Delete failed');
   });
 
-  it('caches thumbnails after loading photos', async () => {
-    const photos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' })];
-    mockMediaService.getPhotosFromAlbum.mockResolvedValue({
-      photos,
-      endCursor: null,
-      hasNextPage: false,
-    });
-
-    const { result } = renderHook(() => usePhotos('album-1'));
-    await waitFor(() => expect(result.current.photos).toHaveLength(2));
-
-    expect(mockCacheThumbnails).toHaveBeenCalledWith('album-1', ['file://p1.jpg', 'file://p2.jpg']);
-  });
 });
 
 describe('usePhotos retry behavior', () => {
@@ -190,7 +171,6 @@ describe('usePhotos retry behavior', () => {
     jest.clearAllMocks();
     jest.useFakeTimers();
     mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
-    mockCacheThumbnails.mockResolvedValue(undefined);
     mockMediaService.getPhotosFromAlbum.mockRejectedValue(new Error('Network error'));
   });
 

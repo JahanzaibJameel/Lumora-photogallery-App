@@ -1,13 +1,8 @@
 import { MMKV } from 'react-native-mmkv';
 
+// Keys only for data that is actually read or written somewhere in the app.
 export const StorageKeys = {
-  ALBUMS: 'lumora_albums',
-  PHOTOS: 'lumora_photos',
-  SETTINGS: 'lumora_settings',
   THEMES: 'lumora_themes',
-  CACHE: 'lumora_cache',
-  BIOMETRIC_CONFIG: 'lumora_biometric_config',
-  SCREENSHOT_CONFIG: 'lumora_screenshot_config',
   FAVORITES: 'lumora_favorites',
   WIDGET_PREFIX: 'lumora_widget_',
   SEARCH_HISTORY: 'lumora_search_history',
@@ -15,17 +10,14 @@ export const StorageKeys = {
 } as const;
 
 interface IStorageService {
-  init(): Promise<void>;
-  save(key: string, value: unknown): Promise<void>;
-  set(key: string, value: unknown): Promise<void>;
+  save(key: string, value: unknown): void;
   get<T>(key: string): T | null;
-  getString(key: string): string | null;
-  getNumber(key: string): number | null;
-  getBoolean(key: string): boolean | null;
-  delete(key: string): Promise<void>;
-  clear(): Promise<void>;
+  delete(key: string): void;
+  clear(): void;
+  contains(key: string): boolean;
 }
 
+// MMKV is synchronous; wrapping it in Promises would only lie about yielding.
 class StorageService implements IStorageService {
   private mmkv: MMKV;
 
@@ -33,22 +25,13 @@ class StorageService implements IStorageService {
     this.mmkv = new MMKV({ id });
   }
 
-  async init(): Promise<void> {
-    // MMKV initialization is handled on instance creation
-  }
-
-  async save(key: string, value: unknown): Promise<void> {
-    const strValue = JSON.stringify(value);
-    this.mmkv.set(key, strValue);
-  }
-
-  async set(key: string, value: unknown): Promise<void> {
-    await this.save(key, value);
+  save(key: string, value: unknown): void {
+    this.mmkv.set(key, JSON.stringify(value));
   }
 
   get<T>(key: string): T | null {
     const strValue = this.mmkv.getString(key);
-    if (strValue === undefined || strValue === null) return null;
+    if (strValue === undefined) return null;
     try {
       return JSON.parse(strValue) as T;
     } catch {
@@ -56,33 +39,11 @@ class StorageService implements IStorageService {
     }
   }
 
-  getString(key: string): string | null {
-    const value = this.mmkv.getString(key);
-    if (value === undefined || value === null) return null;
-    try {
-      const parsed = JSON.parse(value);
-      if (typeof parsed === 'string') return parsed;
-    } catch {
-      // not JSON, return raw string
-    }
-    return value;
-  }
-
-  getNumber(key: string): number | null {
-    const value = this.mmkv.getNumber(key);
-    return value ?? null;
-  }
-
-  getBoolean(key: string): boolean | null {
-    const value = this.mmkv.getBoolean(key);
-    return value ?? null;
-  }
-
-  async delete(key: string): Promise<void> {
+  delete(key: string): void {
     this.mmkv.delete(key);
   }
 
-  async clear(): Promise<void> {
+  clear(): void {
     this.mmkv.clearAll();
   }
 
@@ -92,21 +53,6 @@ class StorageService implements IStorageService {
 }
 
 export const storageService = new StorageService();
-
-export const cacheThumbnails = async (albumId: string, thumbnailUris: string[]): Promise<void> => {
-  const key = `${StorageKeys.CACHE}_thumbnails_${albumId}`;
-  await storageService.save(key, thumbnailUris);
-};
-
-export const loadCachedThumbnails = (albumId: string): string[] | null => {
-  const key = `${StorageKeys.CACHE}_thumbnails_${albumId}`;
-  const cached = storageService.get<unknown>(key);
-  if (!Array.isArray(cached)) return null;
-  const thumbnails = cached.filter(
-    (item): item is string => typeof item === 'string'
-  );
-  return thumbnails.length > 0 ? thumbnails : null;
-};
 
 export const addSearchHistory = (query: string): void => {
   const history = getSearchHistory();

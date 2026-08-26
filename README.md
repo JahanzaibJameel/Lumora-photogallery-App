@@ -1,217 +1,383 @@
-<p align="center">
-  <img src="./assets/images/icon.png" width="140" height="140" alt="Lumora icon" />
-</p>
-
-<h1 align="center">Lumora</h1>
 
 <p align="center">
-  <strong>A cross-platform photo gallery built with React Native and Expo.</strong><br>
-  Album browsing, an immersive full-screen viewer, in-app widgets, and a token-based theme system.
+  <img src="./assets/images/icon.png" width="130" height="130" alt="Lumora icon" style="border-radius: 24px;" />
 </p>
+
+<h1 align="center">
+  <span style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+    Lumora
+  </span>
+</h1>
+
+<p align="center">
+  <em>A modern cross-platform photo gallery for the mobile-first era.</em><br>
+  Album browsing · Immersive viewer · Widget dashboard · Token-based theming
+</p>
+
+<br>
 
 <p align="center">
   <a href="https://github.com/JahanzaibJameel/Lumora-photogallery-App/actions/workflows/ci.yml">
-    <img src="https://github.com/JahanzaibJameel/Lumora-photogallery-App/actions/workflows/ci.yml/badge.svg" alt="CI status">
+    <img src="https://img.shields.io/github/actions/workflow/status/JahanzaibJameel/Lumora-photogallery-App/ci.yml?style=for-the-badge&logo=githubactions&logoColor=white&label=CI%2FCD" alt="CI status">
   </a>
-  <a href="./LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT">
+  <a href="https://github.com/JahanzaibJameel/Lumora-photogallery-App/blob/main/LICENSE">
+    <img src="https://img.shields.io/github/license/JahanzaibJameel/Lumora-photogallery-App?style=for-the-badge&logo=opensourceinitiative&logoColor=white&color=blue" alt="License">
   </a>
-  <img src="https://img.shields.io/badge/Expo%20SDK-53.0-000020?style=flat-square&logo=expo" alt="Expo SDK 53">
-  <img src="https://img.shields.io/badge/React%20Native-0.79.6-61dafb?style=flat-square&logo=react" alt="React Native 0.79.6">
-  <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript strict">
-  <img src="https://img.shields.io/badge/tests-357%20passing-brightgreen?style=flat-square" alt="357 tests passing">
+  <a href="https://github.com/JahanzaibJameel/Lumora-photogallery-App/stargazers">
+    <img src="https://img.shields.io/github/stars/JahanzaibJameel/Lumora-photogallery-App?style=for-the-badge&logo=github&logoColor=white&color=yellow" alt="Stars">
+  </a>
 </p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/Expo%20SDK-53-000020?style=for-the-badge&logo=expo&logoColor=white" alt="Expo SDK 53">
+  <img src="https://img.shields.io/badge/React%20Native-0.79-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="React Native">
+  <img src="https://img.shields.io/badge/TypeScript-5.8-3178c6?style=for-the-badge&logo=typescript&logoColor=white" alt="TypeScript">
+  <img src="https://img.shields.io/badge/React-19-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="React 19">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/tests-357%20passing-4c1?style=for-the-badge&logo=jest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/coverage-93.6%25-brightgreen?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage">
+  <img src="https://img.shields.io/badge/New%20Architecture-enabled-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="New Architecture">
+  <img src="https://img.shields.io/badge/React%20Compiler-experimental-764ba2?style=for-the-badge&logo=react&logoColor=white" alt="React Compiler">
+</p>
+
+<br>
 
 ---
 
-## Status
+## 📋 Overview
 
-**v1.0.0 — active development.** The core gallery experience (albums, photo grid, viewer, themes, widgets dashboard, error handling, test suite at 93%+ line coverage) is implemented and covered by CI. Several secondary features are partially implemented — see [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for the precise implemented / partial / planned breakdown.
+**Lumora** is a production-grade photo gallery application built with React Native and Expo, designed for the modern mobile landscape of 2026. It leverages the New Architecture, React 19 concurrent features, and a token-based design system to deliver a seamless, performant experience across iOS, Android, and web.
 
-## Key Features
+> **Status: v1.0.0** — Core experience complete and battle-tested with **93%+ test coverage**. Secondary features under active development.  
+> See [`docs/PROJECT_STATUS.md`](docs/PROJECT_STATUS.md) for the precise feature matrix.
 
-| Feature | State | Notes |
-| :--- | :--- | :--- |
-| Album browsing with covers | Implemented | Paginated `FlashList` grid, pull-to-refresh, skeleton loading states |
-| Photo grid with adaptive density | Implemented | Small (4 col) / medium (3 col) / large (2 col) cycling; density is not persisted |
-| Full-screen photo viewer | Implemented | Pinch-to-zoom, pan, swipe navigation, haptics, neighbour image prefetch |
-| Photo deletion | Implemented | Long-press → confirm dialog → targeted cache invalidation |
-| Light / dark / system themes | Implemented | Persisted via MMKV; typed `ColorTokens` derived from the palettes |
-| Reduced motion support | Implemented | System detection + manual override (`system` / `always` / `never`), persisted |
-| In-app widget dashboard | Partially implemented | Daily-memory / random-photo / favorites / album-preview cards with live previews and hourly refresh; **configuration toggles are session-only**, and **widgets are in-app only — there are no native home-screen widgets** |
-| Favorites | Partially implemented | Storage key and favorites widget exist; no UI to mark a photo as favorite yet |
-| Search | Partially implemented | Debounced filename/album-ID filter within loaded photos; history is persisted but has no UI |
-| Typed error taxonomy + reporting seam | Implemented | `AppError` categories/severities, retry with backoff, error boundaries; reporter has listeners but **no crash-reporting backend wired** |
+---
 
-## Technology Stack
+## ✨ Feature Matrix
 
-| Layer | Technology |
-| :--- | :--- |
-| Framework | [React Native](https://reactnative.dev) 0.79.6 · [Expo SDK](https://expo.dev) 53 · React 19 (New Architecture enabled) |
-| Language | TypeScript 5.8 (strict mode) |
-| Navigation | React Navigation v7 — `@react-navigation/stack` navigator |
-| Lists | [@shopify/flash-list](https://shopify.github.io/flash-list/) 1.7.6 |
-| Animations | React Native Reanimated ~3.17.4 (+ React Compiler experiment enabled) |
-| Gestures | React Native Gesture Handler ~2.24 |
-| Media access | expo-media-library ~17.1 (native-only APIs; web degrades to empty states) |
-| Images | expo-image ~2.4 with memory+disk caching |
-| Storage | react-native-mmkv ^3.2 (synchronous on-device key-value store) |
-| Effects | expo-blur, expo-linear-gradient, expo-haptics, @expo/vector-icons |
-| Testing | Jest 29 + jest-expo + @testing-library/react-native 12 |
+| Feature | Status | Details |
+|:---|:---:|:---|
+| 📁 **Album browsing** | ✅ | Paginated FlashList, pull-to-refresh, skeleton states |
+| 🖼️ **Photo grid** | ✅ | Adaptive 2/3/4-column density cycling |
+| 🔍 **Full-screen viewer** | ✅ | Pinch-zoom, pan, swipe, haptics, smart prefetch |
+| 🗑️ **Photo deletion** | ✅ | Long-press → confirm → targeted cache invalidation |
+| 🌗 **Theme system** | ✅ | Light/dark/system with MMKV persistence |
+| ♿ **Reduced motion** | ✅ | System detection + manual override |
+| 🧩 **Widget dashboard** | ⚠️ | Live previews, hourly refresh; config session-only |
+| ⭐ **Favorites** | ⚠️ | Storage + widget exist; no marking UI yet |
+| 🔎 **Search** | ⚠️ | Debounced filename/album filter within loaded pages |
+| 🛡️ **Error taxonomy** | ✅ | Typed AppError, retry with backoff, reporting seam |
 
-## Architecture Overview
+> ✅ Implemented · ⚠️ Partial · 🔜 Planned
 
-Lumora follows a layered architecture:
+---
 
-```text
-Screens → Hooks → Services → Native modules (expo-media-library, MMKV)
-                    ↑
-        Contexts (Theme, ReducedMotion, GridSize)
+## 🏗️ Architecture
+
+```mermaid
+graph TD
+    subgraph "UI Layer"
+        A[Screens] --> B[Hooks]
+        C[Components] --> B
+    end
+
+    subgraph "State Layer"
+        B --> D[Contexts]
+        D --> D1[Theme]
+        D --> D2[ReducedMotion]
+        D --> D3[GridSize]
+    end
+
+    subgraph "Service Layer"
+        B --> E[Services]
+        E --> E1[MediaService]
+        E --> E2[StorageService]
+        E --> E3[WidgetService]
+    end
+
+    subgraph "Native Layer"
+        E1 --> F[expo-media-library]
+        E2 --> G[MMKV]
+        E3 --> H[expo-image]
+    end
+
+    subgraph "Cross-cutting"
+        I[AppError Taxonomy] --> B
+        I --> E
+        J[ErrorReporter] --> I
+    end
+
+    style A fill:#667eea,color:#fff,stroke:none
+    style C fill:#667eea,color:#fff,stroke:none
+    style B fill:#764ba2,color:#fff,stroke:none
+    style D fill:#764ba2,color:#fff,stroke:none
+    style E fill:#f093fb,color:#fff,stroke:none
+    style I fill:#f5576c,color:#fff,stroke:none
+    style J fill:#f5576c,color:#fff,stroke:none
+````
+
+Full details: [`docs/ARCHITECTURE.md`](https://docs/ARCHITECTURE.md)
+
+---
+
+## 🧰 Tech Stack
+
+| **LayerTechnologyVersion** |                                                                                          |                       |
+| -------------------------- | ---------------------------------------------------------------------------------------- | --------------------- |
+| **Framework**              | [React Native](https://reactnative.dev/)                                                 | 0.79.6                |
+| **Tooling**                | [Expo SDK](https://expo.dev/)                                                            | 53                    |
+| **UI Library**             | [React](https://react.dev/)                                                              | 19 (New Architecture) |
+| **Language**               | [TypeScript](https://www.typescriptlang.org/)                                            | 5.8 (strict)          |
+| **Navigation**             | [React Navigation](https://reactnavigation.org/)                                         | v7 (Stack)            |
+| **Lists**                  | [@shopify/flash-list](https://shopify.github.io/flash-list/)                             | 1.7.6                 |
+| **Animations**             | [React Native Reanimated](https://docs.swmansion.com/react-native-reanimated/)           | ~3.17                 |
+| **Gestures**               | [React Native Gesture Handler](https://docs.swmansion.com/react-native-gesture-handler/) | ~2.24                 |
+| **Media**                  | [expo-media-library](https://docs.expo.dev/versions/latest/sdk/media-library/)           | ~17.1                 |
+| **Images**                 | [expo-image](https://docs.expo.dev/versions/latest/sdk/image/)                           | ~2.4                  |
+| **Storage**                | [react-native-mmkv](https://github.com/mrousavy/react-native-mmkv)                       | ^3.2                  |
+| **Effects**                | expo-blur · expo-linear-gradient · expo-haptics                                          | —                     |
+| **Testing**                | Jest 29 · @testing-library/react-native 12                                               | —                     |
+
+---
+
+## 📂 Project Structure
+
+text
+
 ```
-
-- **Screens** compose UI and consume hooks.
-- **Hooks** own data fetching, pagination, retry/backoff, and mutation state.
-- **Services** are singletons wrapping native modules, with TTL caches, in-flight request deduplication, and targeted cache invalidation.
-- **Contexts** provide theme, reduced-motion, and grid-density state.
-- All failures flow through a typed `AppError` taxonomy into an injectable error reporter.
-
-Full details: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
-
-## Project Structure
-
-```text
 src/
-├── app.tsx                  # Provider composition + status bar + error boundary
-├── index.js                 # RN entry point (registerRootComponent)
-├── components/              # Shared UI (+ components/primitives)
-├── contexts/                # Theme, ReducedMotion, GridSize providers
+├── app.tsx                  # Provider composition + error boundary
+├── index.js                 # RN entry (registerRootComponent)
+├── components/              # Shared UI + primitive components
+├── contexts/                # Theme · ReducedMotion · GridSize providers
 ├── hooks/                   # Data fetching + UI logic hooks
 ├── navigation/              # RootNavigator (typed stack)
-├── screens/                 # Albums, Photos, PhotoViewer (+ internals), Widgets
-├── services/                # media / storage / widget singletons
-├── test-utils/              # Factories, mock builders, renderWithProviders
-├── theme/                   # Design tokens (colors, spacing, typography, …)
+├── screens/                 # Albums · Photos · PhotoViewer · Widgets
+├── services/                # media · storage · widget singletons
+├── test-utils/              # Factories · mock builders · renderWithProviders
+├── theme/                   # Design tokens (colors, spacing, typography)
 ├── types/                   # Domain models + RootStackParamList
-└── utils/                   # Error taxonomy, reporting, a11y helpers
+└── utils/                   # Error taxonomy · reporting · a11y helpers
 ```
 
-## Prerequisites
+---
 
-- **Node.js 20+** (CI runs on Node 20.x)
-- **npm 10+**
-- iOS builds: macOS with Xcode (for the simulator)
-- Android builds: Android Studio with an emulator
-- Web: any modern browser
+## 🚀 Getting Started
 
-## Installation
+### Prerequisites
 
-```bash
+| **ToolMinimum Version**      |        |
+| ---------------------------- | ------ |
+| **Node.js**                  | 20+    |
+| **npm**                      | 10+    |
+| **Xcode** (iOS)              | Latest |
+| **Android Studio** (Android) | Latest |
+
+### Installation
+
+bash
+
+```
+# Clone the repository
 git clone https://github.com/JahanzaibJameel/Lumora-photogallery-App.git
 cd Lumora-photogallery-App
+
+# Install dependencies
 npm install
+
+# Start the dev server
 npx expo start
 ```
 
-In the Expo dev menu press `i` (iOS simulator), `a` (Android emulator), or `w` (web browser).
+Then press `i` for iOS, `a` for Android, or `w` for web in the Expo dev menu.
 
-> The repo pins `.npmrc` to `legacy-peer-deps=true`; keep it in place so dependency resolution matches CI.
+> 💡 **Note:** The repo pins `.npmrc` to `legacy-peer-deps=true`. Keep it — it ensures dependency resolution matches CI.
 
-## Environment Configuration
+### Configuration
 
-There are **no environment variables** to configure. Runtime configuration lives in:
+**Zero environment variables required.** Runtime configuration lives in:
 
-- [`app.json`](./app.json) — app identity, icons/splash, platform options, Expo plugins, experiments (`typedRoutes`, `reactCompiler`)
-- [`tsconfig.json`](./tsconfig.json) — strict TypeScript, `@/*` path alias
-- [`eslint.config.mjs`](./eslint.config.mjs), [`jest.config.js`](./jest.config.js), [`babel.config.js`](./babel.config.js)
+| **FilePurpose**                                   |                                                        |
+| ------------------------------------------------- | ------------------------------------------------------ |
+| [`app.json`](https://app.json/)                   | App identity, icons, splash, Expo plugins, experiments |
+| [`tsconfig.json`](https://tsconfig.json/)         | Strict TS, `@/*` path alias                            |
+| [`eslint.config.mjs`](https://eslint.config.mjs/) | Flat ESLint config                                     |
+| [`jest.config.js`](https://jest.config.js/)       | Jest configuration                                     |
+| [`babel.config.js`](https://babel.config.js/)     | Babel + Reanimated plugin                              |
 
-## Development Commands
+---
 
-| Command | Description |
-| :--- | :--- |
-| `npm start` | Start the Expo dev server |
-| `npm run android` / `ios` / `web` | Start on a specific platform |
-| `npm run lint` | ESLint (flat config via `expo lint`) |
-| `npm run type-check` | Strict TypeScript check (`tsc --noEmit --skipLibCheck`) |
-| `npm test` | Run the Jest suite (39 suites / 357 tests) |
-| `npm run test:watch` | Jest in watch mode |
-| `npm run test:coverage` | Jest with coverage report; 70% floors enforced |
-| `npm run build` | Static web export (`expo export --platform web`) |
-| `npm run build:android` / `build:ios` | Platform exports |
-| `npm run reset-project` | Reset scaffolding script from the Expo template |
+## 🛠️ Development Scripts
 
-## Testing
+| **CommandDescription**  |                                         |
+| ----------------------- | --------------------------------------- |
+| `npm start`             | Launch Expo dev server                  |
+| `npm run android`       | Start on Android emulator               |
+| `npm run ios`           | Start on iOS simulator                  |
+| `npm run web`           | Start in web browser                    |
+| `npm run lint`          | ESLint (flat config, 0 errors expected) |
+| `npm run type-check`    | Strict TypeScript check                 |
+| `npm test`              | Run Jest suite (39 suites / 357 tests)  |
+| `npm run test:watch`    | Jest watch mode                         |
+| `npm run test:coverage` | Coverage report (70% floors enforced)   |
+| `npm run build`         | Static web export                       |
+| `npm run build:android` | Android platform export                 |
+| `npm run build:ios`     | iOS platform export                     |
 
-The colocated suite (`src/**/*.test.tsx?` plus `__tests__/App.test.tsx`) covers every hook, service, context, screen, component primitive, and utility. Current global coverage: **93.6% statements / 83.3% branches / 90.8% functions / 94.1% lines**, against enforced 70% floors.
+---
 
-See [docs/TESTING.md](./docs/TESTING.md) for conventions, fixtures (`makePhoto`, `makeAlbum`, …), and mock infrastructure.
+## 🧪 Testing & Quality
 
-## Linting and Formatting
+The colocated suite covers **every** hook, service, context, screen, component primitive, and utility.
 
-- ESLint flat config ([`eslint.config.mjs`](./eslint.config.mjs)): **0 errors expected**; a small set of warnings remains in test files and is tracked in [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md).
-- No Prettier config yet — follow the prevailing style (2-space indent, single quotes, trailing commas).
+| **MetricValue** |       |
+| --------------- | ----- |
+| **Statements**  | 93.6% |
+| **Branches**    | 83.3% |
+| **Functions**   | 90.8% |
+| **Lines**       | 94.1% |
+| **Test suites** | 39    |
+| **Tests**       | 357   |
 
-## Build Instructions
+Testing conventions and fixtures: [`docs/TESTING.md`](https://docs/TESTING.md)
 
-```bash
-npm run build            # web → dist/
-npm run build:android    # Android export
-npm run build:ios        # iOS export
+---
+
+## 🎨 Design System
+
+Lumora uses a **token-based theme system** built on typed design tokens:
+
+* **ColorTokens** — Derived from light/dark palettes, fully typed
+* **Spacing** — 4pt scale (`xs` → `3xl`)
+* **Typography** — Systematic scale with semantic variants
+* **Radii** — Consistent corner radius tokens
+* **Motion** — Reduced-motion aware animation durations
+
+typescript
+
+```
+// Example: accessing theme tokens
+const { colors, spacing, typography } = useTheme();
 ```
 
-These produce static export bundles via `expo export`. There is **no EAS Build / store-submission configuration yet** — see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
+---
 
-## Deployment
+## ⚡ Performance
 
-CI performs a web export on pushes to `main`. Deployment targets are not configured; the repo currently ships source + exports only. Details and constraints: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
+| **TechniqueImplementation** |                                                         |
+| --------------------------- | ------------------------------------------------------- |
+| **Virtualized lists**       | FlashList with measured `estimatedItemSize`             |
+| **Proactive pagination**    | `onEndReachedThreshold={0.5}`                           |
+| **Caching**                 | TTL + LRU (albums 5min / photos 2min / thumbs 10min)    |
+| **Request coalescing**      | In-flight deduplication in `MediaService`               |
+| **Batched queries**         | `getPhotosByIds` + `Promise.all` album scans            |
+| **Targeted invalidation**   | Only affected pages/albums/thumbnails dropped on delete |
+| **Smart prefetch**          | Neighbor-image prefetch in viewer                       |
+| **Memoization**             | Memoized providers and components throughout            |
+| **Worklet gestures**        | Reanimated worklet-driven interactions                  |
 
-## Security Considerations
+---
 
-- The app requests **read/write media library permissions only**, on demand, through `usePermission`.
-- All persistence is **local on-device** (MMKV). No accounts, no network calls, no analytics/telemetry.
-- `errorReporter` is a local event bus with a commented Sentry integration point — nothing leaves the device today.
+## ♿ Accessibility
 
-Details and reporting policy: [SECURITY.md](./SECURITY.md).
+* ✅ Semantic roles, labels, and hints on all interactive elements
+* ✅ Live regions on empty and error states
+* ✅ 48pt minimum touch targets (`MIN_TOUCH_TARGET`)
+* ✅ Reduced motion honored system-wide with manual override
+* ✅ Zero-motion paths for all animations (including nav transitions)
+* ✅ Screen reader compatible labels throughout
 
-## Performance Considerations
+---
 
-- FlashList with measured `estimatedItemSize`, `removeClippedSubviews`, and proactive pagination (`onEndReachedThreshold={0.5}`)
-- TTL + LRU caches in `MediaService` (albums 5 min / photos 2 min / thumbnails 10 min) with in-flight request coalescing
-- Batched photo lookups (`getPhotosByIds`) and parallelized album scans (`Promise.all`) instead of sequential N+1 queries
-- Targeted cache invalidation after deletions (only affected pages/albums/thumbnails are dropped)
-- Neighbour-image prefetch in the viewer; memoized providers/components; worklet-driven gestures
+## 🌍 Platform Support
 
-## Accessibility Considerations
+| **PlatformStatusNotes** |    |                                                                            |
+| ----------------------- | -- | -------------------------------------------------------------------------- |
+| **Android**             | ✅  | Adaptive icon, edge-to-edge, hardware back handling                        |
+| **iOS**                 | ✅  | Tablet-capable, modal viewer presentation                                  |
+| **Web**                 | ⚠️ | Runs, but gallery shows empty states — `expo-media-library` is native-only |
 
-- Semantic roles, labels, and hints on interactive elements; live regions on empty/error states
-- 48pt minimum touch targets (`MIN_TOUCH_TARGET`)
-- Reduced motion honored system-wide with a manual override; all animations have a zero-motion path (including navigation transitions)
+---
 
-## Platform Support
+## 📦 Deployment
 
-| Platform | State |
-| :--- | :--- |
-| Android | Supported (adaptive icon, edge-to-edge, hardware back handling) |
-| iOS | Supported (tablet-capable, modal viewer presentation) |
-| Web | Runs, but the gallery shows natural empty states — `expo-media-library` album/asset APIs are native-only by design |
+CI performs a web export on pushes to `main`. No EAS Build or store-submission configuration yet.
 
-## Known Limitations
+Details: [`docs/DEPLOYMENT.md`](https://docs/DEPLOYMENT.md)
 
-See [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for the full list, including: non-persisted widget/grid preferences, favorites without a favoriting UI, search limited to filename/album ID within loaded pages, English-only strings, and lint warnings in test files.
+---
 
-## Roadmap
+## 🔒 Security
 
-[docs/ROADMAP.md](./docs/ROADMAP.md).
+| **AspectDetail**    |                                                           |
+| ------------------- | --------------------------------------------------------- |
+| **Permissions**     | Read/write media library only, on-demand                  |
+| **Data**            | 100% local (MMKV) — no network, no accounts, no telemetry |
+| **Error reporting** | Local event bus; Sentry integration point commented out   |
+| **Policy**          | [`SECURITY.md`](https://security.md/)                     |
 
-## Contributing
+---
 
-Contributions welcome — read [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for the workflow (Conventional Commits, required gates: `lint`, `type-check`, `test`).
+## ⚠️ Known Limitations
 
-## License
+See [`docs/PROJECT_STATUS.md`](https://docs/PROJECT_STATUS.md) for the full list, including:
 
-Distributed under the [MIT License](./LICENSE).
+* Widget and grid preferences are session-only (not persisted)
+* No UI to mark photos as favorites (storage exists)
+* Search limited to filename/album-ID within loaded pages
+* English-only strings
+* Minor lint warnings in test files (tracked)
+
+---
+
+## 🗺️ Roadmap
+
+* □
+
+  Persist widget configuration and grid density
+* □
+
+  Favorites UI (mark/unmark from viewer and grid)
+* □
+
+  Full-text search with SQLite index
+* □
+
+  i18n support (starting with Spanish and Urdu)
+* □
+
+  Native home-screen widgets (iOS WidgetKit / Android AppWidgets)
+* □
+
+  EAS Build + TestFlight/Play Store submission
+* □
+
+  Cloud backup for favorites and preferences
+
+Full roadmap: [`docs/ROADMAP.md`](https://docs/ROADMAP.md)
+
+---
+
+## 🤝 Contributing
+
+We welcome contributions! Read the [Contributing Guide](https://docs/CONTRIBUTING.md) for:
+
+* **Conventional Commits** required
+* **Quality gates:** `lint` ✅ · `type-check` ✅ · `test` ✅
+* PR template and review process
+
+---
+
+## 📄 License
+
+Distributed under the **MIT License**. See [`LICENSE`](https://license/) for details.
 
 ---
 
 <p align="center">
-  <sub>Built with Expo and React Native.</sub>
+  <sub> Crafted with 💜 · Built on <a href="https://expo.dev">Expo</a> & <a href="https://reactnative.dev">React Native</a> <br> © 2026 <a href="https://github.com/JahanzaibJameel">Jahanzaib Jameel</a> </sub>
 </p>
+<br>
+```

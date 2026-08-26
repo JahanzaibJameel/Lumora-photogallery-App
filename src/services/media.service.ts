@@ -1,6 +1,8 @@
 import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
 import { Album, Photo } from '../types';
+import { errorReporter } from '../utils/errorReporting';
+import { categorizeError } from '../utils/errors';
 
 // expo-media-library's album/asset APIs are native-only; calling them on web
 // throws UnavailabilityError. Callers degrade to natural empty states instead.
@@ -139,6 +141,13 @@ export class MediaService {
     return msg.includes('network') || msg.includes('timeout') || msg.includes('fetch failed');
   }
 
+  // Single reporting seam for degraded-but-recoverable failures. Errors that
+  // make a user action fail are rethrown by the caller after reporting here.
+  private report(error: unknown, action: string): void {
+    const appError = categorizeError(error);
+    errorReporter.capture(appError, { service: 'MediaService', action });
+  }
+
   private getCachedAlbums(): Album[] {
     const now = Date.now();
     for (const [id, entry] of this.albumsCache) {
@@ -171,7 +180,7 @@ export class MediaService {
 
       return formatted.slice(offset, offset + limit);
     } catch (error) {
-      console.error('Error fetching albums:', error);
+      this.report(error, 'getAlbums');
       throw error;
     }
   }
@@ -239,7 +248,7 @@ export class MediaService {
       if (!asset) return null;
       return assetToPhoto(asset, asset.albumId || '');
     } catch (error) {
-      console.error('Error fetching photo:', error);
+      this.report(error, 'getPhotoById');
       return null;
     }
   }
@@ -252,7 +261,7 @@ export class MediaService {
       );
       return photos.filter((photo): photo is Photo => photo !== null);
     } catch (error) {
-      console.error('Error fetching photos by IDs:', error);
+      this.report(error, 'getPhotosByIds');
       return [];
     }
   }
@@ -292,7 +301,7 @@ export class MediaService {
       }
       return uri;
     } catch (error) {
-      console.error('Error fetching album thumbnail:', error);
+      this.report(error, 'getAlbumThumbnail');
       return undefined;
     } finally {
       this.inFlight.delete(inFlightKey);
@@ -321,7 +330,7 @@ export class MediaService {
 
       return formatted;
     } catch (error) {
-      console.error('Error fetching album:', error);
+      this.report(error, 'getAlbumById');
       return null;
     }
   }
@@ -358,7 +367,7 @@ export class MediaService {
 
       return true;
     } catch (error) {
-      console.error('Error deleting photo:', error);
+      this.report(error, 'deletePhoto');
       throw error;
     }
   }

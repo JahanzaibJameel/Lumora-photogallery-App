@@ -1,6 +1,19 @@
 import { Photo } from '../types';
+import { errorReporter } from '../utils/errorReporting';
+import { categorizeError } from '../utils/errors';
 import { getMediaService } from './media.service';
 import { StorageKeys, storageService } from './storage.service';
+
+// Per-album failures inside multi-album scans degrade the widget instead of
+// failing it; they are still reported through the shared error pipeline.
+const reportAlbumScanFailure = (error: unknown, widget: string): { photos: Photo[] } => {
+  errorReporter.capture(categorizeError(error), {
+    service: 'WidgetService',
+    action: 'albumScan',
+    widget,
+  });
+  return { photos: [] as Photo[] };
+};
 
 export interface WidgetData {
   type: 'daily_memory' | 'random_photo' | 'album_preview' | 'favorites';
@@ -84,10 +97,7 @@ export const WidgetService = {
       albums.slice(0, 5).map(album =>
         mediaService
           .getPhotosFromAlbum(album.id, undefined, 50)
-          .catch(error => {
-            console.error('Error fetching photos for daily memory:', error);
-            return { photos: [] as Photo[] };
-          })
+          .catch(error => reportAlbumScanFailure(error, 'daily_memory'))
       )
     );
 
@@ -126,13 +136,13 @@ export const WidgetService = {
     };
 
     setCachedWidget(cacheKey, widgetData);
-    await this.saveWidgetData('daily_memory', widgetData);
+    this.saveWidgetData('daily_memory', widgetData);
 
     return widgetData;
   },
 
   /**
-   * Get random photos for widget
+   * Get random photos for the in-app widget dashboard.
    */
   async getRandomPhotos(count: number = 1): Promise<WidgetData> {
     const cacheKey = `random_photo_${count}`;
@@ -146,16 +156,20 @@ export const WidgetService = {
       albums.slice(0, 3).map(album =>
         mediaService
           .getPhotosFromAlbum(album.id, undefined, 20)
-          .catch(error => {
-            console.error('Error fetching random photos:', error);
-            return { photos: [] as Photo[] };
-          })
+          .catch(error => reportAlbumScanFailure(error, 'random_photo'))
       )
     );
 
     const allPhotos: Photo[] = results.flatMap(result => result.photos);
 
-    const shuffled = allPhotos.sort(() => Math.random() - 0.5);
+    // Fisher-Yates: sort-by-random produces a biased distribution that
+    // over-represents early entries, which matters when picking a single
+    // "featured" photo.
+    const shuffled = [...allPhotos];
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
     const selected = shuffled.slice(0, count);
 
     const widgetData: WidgetData = {
@@ -171,7 +185,7 @@ export const WidgetService = {
     };
 
     setCachedWidget(cacheKey, widgetData);
-    await this.saveWidgetData('random_photo', widgetData);
+    this.saveWidgetData('random_photo', widgetData);
 
     return widgetData;
   },
@@ -206,7 +220,7 @@ export const WidgetService = {
     };
 
     setCachedWidget(cacheKey, widgetData);
-    await this.saveWidgetData(cacheKey, widgetData);
+    this.saveWidgetData(cacheKey, widgetData);
 
     return widgetData;
   },
@@ -239,19 +253,19 @@ export const WidgetService = {
     };
 
     setCachedWidget(cacheKey, widgetData);
-    await this.saveWidgetData('favorites', widgetData);
+    this.saveWidgetData('favorites', widgetData);
 
     return widgetData;
   },
 
   /**
-   * Save widget data to storage
+   * Save widget data to storage (synchronous MMKV write).
    */
-  async saveWidgetData(widgetId: string, data: WidgetData): Promise<void> {
-    await storageService.save(`${StorageKeys.WIDGET_PREFIX}${widgetId}`, data);
+  saveWidgetData(widgetId: string, data: WidgetData): void {
+    storageService.save(`${StorageKeys.WIDGET_PREFIX}${widgetId}`, data);
   },
 
-  async getWidgetData(widgetId: string): Promise<WidgetData | null> {
+  getWidgetData(widgetId: string): WidgetData | null {
     return storageService.get<WidgetData>(`${StorageKeys.WIDGET_PREFIX}${widgetId}`);
   },
 

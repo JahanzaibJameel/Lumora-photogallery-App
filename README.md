@@ -374,8 +374,4 @@ We welcome contributions! Read the [Contributing Guide](https://docs/CONTRIBUTIN
 
 Distributed under the **MIT License**. See [`LICENSE`](https://license/) for details.
 
----
 
-<p align="center">
-  <sub> Crafted with 💜 · Built on <a href="https://expo.dev">Expo</a> & <a href="https://reactnative.dev">React Native</a> <br> © 2026 <a href="https://github.com/JahanzaibJameel">Jahanzaib Jameel</a> </sub>
-</p>

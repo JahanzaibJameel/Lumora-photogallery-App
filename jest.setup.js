@@ -1,8 +1,5 @@
 const { View, Text, ScrollView, Image } = require('react-native');
 
-// Extend `expect` with jest-native matchers (toBeVisible, toHaveTextContent, ...).
-require('@testing-library/jest-native');
-
 // ----------------------------------------------------------------------------
 // react-native-reanimated
 // ----------------------------------------------------------------------------

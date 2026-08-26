@@ -346,6 +346,161 @@ describe('MediaService', () => {
       mockMediaLibrary.deleteAssetsAsync.mockRejectedValue(new Error('Delete failed'));
       await expect(service.deletePhoto('p1')).rejects.toThrow('Delete failed');
     });
+
+    it('drops affected albums from the thumbnail cache', async () => {
+      mockMediaLibrary.deleteAssetsAsync.mockResolvedValue(true);
+      const album = mockAlbumResult({ id: 'a1', count: 5 });
+      (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1_start_30',
+        { value: { photos: [makePhoto({ id: 'p1', albumId: 'a1' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
+      );
+      (service as any).thumbnailsCache.set('a1', { value: 'file://cover.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).thumbnailsCache.set('a2', { value: 'file://other.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+      await service.deletePhoto('p1');
+      expect((service as any).thumbnailsCache.has('a1')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).thumbnailsCache.has('a2')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+    });
+  });
+
+  describe('in-flight coalescing', () => {
+    it('shares a single native request between concurrent callers', async () => {
+      let release!: () => void;
+      mockMediaLibrary.getAssetsAsync.mockImplementation(
+        () => new Promise(resolve => { release = () => resolve({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 }); })
+      );
+
+      const first = service.getPhotosFromAlbum('a1', undefined, 30);
+      const second = service.getPhotosFromAlbum('a1', undefined, 30);
+      release();
+      const [firstPage, secondPage] = await Promise.all([first, second]);
+
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(1);
+      expect(firstPage).toBe(secondPage);
+    });
+
+    it('releases the in-flight slot when a request fails so later calls can retry', async () => {
+      mockMediaLibrary.getAssetsAsync
+        .mockRejectedValueOnce(new Error('boom'))
+        .mockResolvedValueOnce({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
+
+      await expect(service.getPhotosFromAlbum('a1', undefined, 30)).rejects.toThrow('boom');
+      await expect(service.getPhotosFromAlbum('a1', undefined, 30)).resolves.toEqual({
+        photos: [],
+        endCursor: '',
+        hasNextPage: false,
+      });
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(2);
+    });
+
+    it('evicts the oldest pages beyond the cache limit', async () => {
+      const old = Date.now() - 10_000;
+      for (let i = 0; i < 499; i++) {
+        (service as any).photosCache.set(`a_${i}_start_30`, { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      }
+      // Oldest entry sits mid-map so eviction must find it, not just drop head.
+      (service as any).photosCache.set('a_old_start_30', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: old }); // eslint-disable-line @typescript-eslint/no-explicit-any
+
+      mockMediaLibrary.getAssetsAsync.mockResolvedValue({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
+      await service.getPhotosFromAlbum('a_new', undefined, 30);
+
+      const cache = (service as any).photosCache as Map<string, unknown>; // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(cache.size).toBeLessThanOrEqual(500);
+      expect(cache.has('a_old_start_30')).toBe(false);
+      expect(cache.has('a_new_start_30')).toBe(true);
+    });
+  });
+
+  describe('cache expiry', () => {
+    it('refetches albums once cached entries pass their TTL', async () => {
+      mockMediaLibrary.getAlbumsAsync.mockResolvedValue([mockMediaLibraryAlbum({ id: 'a1' })]);
+
+      await service.getAlbums(0, 20);
+      expect(mockMediaLibrary.getAlbumsAsync).toHaveBeenCalledTimes(1);
+
+      // Age every entry past the albums TTL (5 minutes).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      for (const [, entry] of (service as any).albumsCache) {
+        entry.timestamp = Date.now() - 6 * 60 * 1000;
+      }
+
+      await service.getAlbums(0, 20);
+      expect(mockMediaLibrary.getAlbumsAsync).toHaveBeenCalledTimes(2);
+    });
+
+    it('refetches photo pages past their TTL instead of serving stale data', async () => {
+      mockMediaLibrary.getAssetsAsync.mockResolvedValue({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
+
+      await service.getPhotosFromAlbum('a1', undefined, 30);
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(1);
+
+      const page = (service as any).photosCache.get('a1_start_30'); // eslint-disable-line @typescript-eslint/no-explicit-any
+      page.timestamp = Date.now() - 3 * 60 * 1000;
+
+      await service.getPhotosFromAlbum('a1', undefined, 30);
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(2);
+    });
+
+    it('retries transient native failures before giving up', async () => {
+      mockMediaLibrary.getAssetsAsync
+        .mockRejectedValueOnce(new Error('network unreachable'))
+        .mockResolvedValueOnce({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
+
+      const page = await service.getPhotosFromAlbum('a1', undefined, 30);
+
+      expect(page.photos).toEqual([]);
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  describe('getAlbumThumbnail', () => {
+    it('serves repeat requests from the cache', async () => {
+      mockMediaLibrary.getAssetsAsync.mockResolvedValue({
+        assets: [{ ...mockMediaLibraryAsset(), uri: 'file://thumb.jpg' }],
+        endCursor: '',
+        hasNextPage: false,
+        totalCount: 1,
+      });
+
+      const first = await service.getAlbumThumbnail('a1');
+      const second = await service.getAlbumThumbnail('a1');
+
+      expect(first).toBe('file://thumb.jpg');
+      expect(second).toBe('file://thumb.jpg');
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('coalesces concurrent requests into one native call', async () => {
+      let release!: () => void;
+      mockMediaLibrary.getAssetsAsync.mockImplementation(
+        () => new Promise(resolve => {
+          release = () => resolve({ assets: [{ ...mockMediaLibraryAsset(), uri: 'file://thumb.jpg' }], endCursor: '', hasNextPage: false, totalCount: 1 });
+        })
+      );
+
+      const first = service.getAlbumThumbnail('a1');
+      const second = service.getAlbumThumbnail('a1');
+      release();
+
+      expect(await first).toBe(await second);
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not cache failures', async () => {
+      mockMediaLibrary.getAssetsAsync
+        .mockRejectedValueOnce(new Error('thumbnail boom'))
+        .mockResolvedValueOnce({
+          assets: [{ ...mockMediaLibraryAsset(), uri: 'file://recovered.jpg' }],
+          endCursor: '',
+          hasNextPage: false,
+          totalCount: 1,
+        });
+
+      await expect(service.getAlbumThumbnail('a1')).resolves.toBeUndefined();
+      await expect(service.getAlbumThumbnail('a1')).resolves.toBe('file://recovered.jpg');
+      expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(2);
+    });
   });
 
   describe('getAssetInfo', () => {
@@ -359,13 +514,15 @@ describe('MediaService', () => {
   });
 
   describe('clearCache', () => {
-    it('clears both caches', async () => {
+    it('clears all caches', async () => {
       (service as any).albumsCache.set('a1', { value: mockAlbumResult({ id: 'a1' }), timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
       (service as any).photosCache.set('k1', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      (service as any).thumbnailsCache.set('a1', { value: 'file://thumb.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       service.clearCache();
       expect((service as any).albumsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
       expect((service as any).photosCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect((service as any).thumbnailsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
   });
 });

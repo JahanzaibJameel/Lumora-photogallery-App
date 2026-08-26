@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { useWindowDimensions } from 'react-native';
 import Animated, {
   useAnimatedScrollHandler,
   useSharedValue,
@@ -62,6 +63,15 @@ const PhotosScreen = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
   const { recordQuery } = useSearchHistory();
+
+  // FlashList uses this estimate to size the scrollbar and pre-render window;
+  // deriving it from the actual cell geometry beats hardcoding per-grid guesses.
+  const numColumns = gridSize === 'small' ? 4 : gridSize === 'large' ? 2 : 3;
+  const { width: windowWidth } = useWindowDimensions();
+  const estimatedItemSize = useMemo(
+    () => Math.round(windowWidth / numColumns),
+    [windowWidth, numColumns]
+  );
 
   const filteredPhotos = useMemo(() => {
     const q = debouncedQuery.trim().toLowerCase();
@@ -165,14 +175,6 @@ const PhotosScreen = () => {
     );
   }, [loading, error, refreshPhotos, debouncedQuery, filteredPhotos.length, retryLoad]);
 
-  const getNumColumns = () => {
-    switch (gridSize) {
-      case 'small': return 4;
-      case 'large': return 2;
-      default: return 3;
-    }
-  };
-
   const gridIconName = gridSize === 'small' ? 'grid' : gridSize === 'medium' ? 'square' : 'list';
 
   return (
@@ -189,8 +191,8 @@ const PhotosScreen = () => {
           data={filteredPhotos}
           renderItem={renderPhoto}
           keyExtractor={(item: Photo) => item.id}
-          numColumns={getNumColumns()}
-          estimatedItemSize={gridSize === 'small' ? 80 : gridSize === 'large' ? 120 : 100}
+          numColumns={numColumns}
+          estimatedItemSize={estimatedItemSize}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
           onEndReached={loadMore}

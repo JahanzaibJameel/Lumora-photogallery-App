@@ -1,4 +1,5 @@
 import { render, fireEvent } from '@testing-library/react-native';
+import { Image } from 'expo-image';
 import React from 'react';
 import { usePhotos } from '../hooks/usePhotos';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -107,5 +108,26 @@ describe('PhotoViewer', () => {
     expect(queryByLabelText(/Photo \d+ of \d+/)).toBeNull();
     expect(queryByLabelText('Close viewer')).toBeNull();
     expect(queryByLabelText('Next photo')).toBeNull();
+  });
+
+  it('prefetches both neighbouring photos so swipes resolve from cache', () => {
+    const prefetch = Image.prefetch as jest.Mock;
+    const photos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })];
+    mockPhotosReturn(photos);
+
+    render(<PhotoViewer />);
+
+    expect(prefetch).toHaveBeenCalledWith([photos[0].uri, photos[2].uri]);
+  });
+
+  it('prefetches only the existing neighbour at the edge of the album', () => {
+    const prefetch = Image.prefetch as jest.Mock;
+    mockRouteParams = { photoId: 'p1', albumId: 'album-1', initialIndex: 0 };
+    const photos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' })];
+    mockPhotosReturn(photos);
+
+    render(<PhotoViewer />);
+
+    expect(prefetch).toHaveBeenCalledWith([photos[1].uri]);
   });
 });

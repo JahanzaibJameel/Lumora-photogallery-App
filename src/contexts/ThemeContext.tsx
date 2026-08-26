@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
 import { storageService, StorageKeys } from '../services/storage.service';
 import { lightColors, darkColors } from '../theme/tokens';
@@ -44,8 +44,15 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
     setThemeMode(newMode);
   }, [effectiveMode, setThemeMode]);
 
+  // Stable identity: without memoization every provider render hands consumers
+  // a fresh value object and re-renders the entire tree below it.
+  const value = useMemo(
+    () => ({ colors, themeMode, isDark, setThemeMode, toggleTheme }),
+    [colors, themeMode, isDark, setThemeMode, toggleTheme]
+  );
+
   return (
-    <ThemeContext.Provider value={{ colors, themeMode, isDark, setThemeMode, toggleTheme }}>
+    <ThemeContext.Provider value={value}>
       {children}
     </ThemeContext.Provider>
   );

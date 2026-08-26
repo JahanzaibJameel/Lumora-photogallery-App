@@ -57,4 +57,30 @@ describe('BlurHashImage', () => {
     // We verify the component renders an Image component
     expect(UNSAFE_getByType('View')).toBeTruthy();
   });
+
+  it('forwards blurhash as the native placeholder source', () => {
+    const { UNSAFE_getAllByType } = renderWithProviders(
+      <BlurHashImage uri="file://photo.jpg" blurhash="LFFaXYk^00I[ogs" style={{ width: 100, height: 100 }} />
+    );
+    const image = UNSAFE_getAllByType('View').find((view) => view.props.placeholder);
+    expect(image).toBeTruthy();
+    expect(image!.props.placeholder).toEqual({ blurhash: 'LFFaXYk^00I[ogs' });
+  });
+
+  it('omits the placeholder when no blurhash is provided', () => {
+    const { UNSAFE_getAllByType } = renderWithProviders(
+      <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
+    );
+    const image = UNSAFE_getAllByType('View').find((view) => 'cachePolicy' in view.props);
+    expect(image!.props.placeholder).toBeUndefined();
+  });
+
+  it('caches decoded images in memory and on disk', () => {
+    const { UNSAFE_getAllByType } = renderWithProviders(
+      <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
+    );
+    const image = UNSAFE_getAllByType('View').find((view) => 'cachePolicy' in view.props);
+    expect(image!.props.cachePolicy).toBe('memory-disk');
+    expect(image!.props.transition).toBe(300);
+  });
 });

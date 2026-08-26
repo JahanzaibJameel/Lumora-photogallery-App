@@ -46,7 +46,10 @@ global.window.dispatchEvent = global.window.dispatchEvent || (() => {});
     useAnimatedKeyboard: () => ({ height: 0, state: 0 }),
     useScrollViewOffset: () => ({ value: 0 }),
     useScrollOffset: () => ({ value: 0 }),
-    withSpring: ID,
+    withSpring: (v, config, cb) => {
+      if (typeof cb === 'function') Promise.resolve().then(() => cb(true));
+      return v;
+    },
     withTiming: ID,
     withRepeat: ID,
     withDelay: (d, v) => v,
@@ -156,7 +159,8 @@ jest.mock('expo-media-library', () => {
 });
 
 // ----------------------------------------------------------------------------
-// expo-blur, expo-linear-gradient, expo-haptics (rendered in the Albums tree)
+// expo-blur, expo-linear-gradient, expo-haptics, expo-image (rendered across
+// album/photo surfaces)
 // ----------------------------------------------------------------------------
 jest.mock('expo-blur', () => {
   const React = require('react');
@@ -164,6 +168,15 @@ jest.mock('expo-blur', () => {
   const BlurView = ({ children, style }) =>
     React.createElement(View, { style }, children);
   return { __esModule: true, BlurView, BlurViewProps: {} };
+});
+
+jest.mock('expo-image', () => {
+  const React = require('react');
+  const { View } = require('react-native');
+  const Image = (props) =>
+    React.createElement(View, { ...props, testID: props.testID ?? 'expo-image' });
+  Image.prefetch = jest.fn(() => Promise.resolve(true));
+  return { __esModule: true, Image };
 });
 
 jest.mock('expo-linear-gradient', () => {
@@ -240,14 +253,16 @@ jest.mock('react-native-gesture-handler', () => {
   const { View } = require('react-native');
 
   // A minimal gesture that supports the builder-chain API used by components.
-  // Each handler method returns the gesture instance so calls can be chained.
+  // Handler callbacks are recorded on `_handlers` so tests can drive simulated
+  // gesture lifecycles (onUpdate/onEnd) directly against real handler logic.
   const createGesture = () => {
     const gesture = {
-      onUpdate: () => gesture,
-      onEnd: () => gesture,
-      onStart: () => gesture,
-      onBegin: () => gesture,
-      onFinalize: () => gesture,
+      _handlers: {},
+      onUpdate: (fn) => { gesture._handlers.onUpdate = fn; return gesture; },
+      onEnd: (fn) => { gesture._handlers.onEnd = fn; return gesture; },
+      onStart: (fn) => { gesture._handlers.onStart = fn; return gesture; },
+      onBegin: (fn) => { gesture._handlers.onBegin = fn; return gesture; },
+      onFinalize: (fn) => { gesture._handlers.onFinalize = fn; return gesture; },
       onTouchesDown: () => gesture,
       onTouchesMove: () => gesture,
       onTouchesUp: () => gesture,

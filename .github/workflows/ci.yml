@@ -8,24 +8,30 @@ on:
     branches:
       - main
 
+# Superseded runs on the same branch waste runners and can race for status
+# checks; cancel them in favor of the newest commit.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
-  build:
+  verify:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v3
+      uses: actions/checkout@v4
 
     - name: Setup Node.js
-      uses: actions/setup-node@v3
+      uses: actions/setup-node@v4
       with:
-        node-version: '18.x'
+        node-version: '20.x'
+        cache: 'npm'
 
     - name: Install dependencies
-      run: npm install --legacy-peer-deps
-
-    - name: Install expo-cli globally
-      run: npm install -g expo-cli
+      # npm ci honors the lockfile exactly; --legacy-peer-deps matches local
+      # installs because react-native-worklets declares a narrower peer range.
+      run: npm ci --legacy-peer-deps
 
     - name: Run ESLint linter
       run: npm run lint
@@ -33,9 +39,9 @@ jobs:
     - name: Type check with TypeScript
       run: npm run type-check
 
-    - name: Run Jest tests
-      run: npm test
+    - name: Run Jest tests with coverage gates
+      run: npm run test:coverage
 
     - name: Build web export
       if: github.ref == 'refs/heads/main'
-      run: expo export --platform web
+      run: npx expo export --platform web

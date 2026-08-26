@@ -24,8 +24,10 @@ interface InFlightRequest<T> {
 
 const ALBUMS_CACHE_TTL = 5 * 60 * 1000;
 const PHOTOS_CACHE_TTL = 2 * 60 * 1000;
+const THUMBNAILS_CACHE_TTL = 10 * 60 * 1000;
 const ALBUMS_CACHE_MAX = 200;
 const PHOTOS_CACHE_MAX = 500;
+const THUMBNAILS_CACHE_MAX = 300;
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 500;
 
@@ -85,11 +87,21 @@ function formatAlbum(album: MediaLibrary.Album): Album {
 
 function lruEvict<K, V>(cache: Map<K, CacheEntry<V>>, maxSize: number): void {
   if (cache.size <= maxSize) return;
-  const entries = Array.from(cache.entries());
-  entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-  const toRemove = entries.slice(0, cache.size - maxSize);
-  for (const [key] of toRemove) {
-    cache.delete(key);
+  // Single-pass oldest-entry eviction: cheaper than sorting every entry on
+  // each overflow insert, and equivalent because timestamps only move forward.
+  let oldestKey: K | undefined;
+  let oldestTimestamp = Infinity;
+  while (cache.size > maxSize) {
+    for (const [key, entry] of cache) {
+      if (entry.timestamp < oldestTimestamp) {
+        oldestTimestamp = entry.timestamp;
+        oldestKey = key;
+      }
+    }
+    if (oldestKey === undefined) break;
+    cache.delete(oldestKey);
+    oldestKey = undefined;
+    oldestTimestamp = Infinity;
   }
 }
 
@@ -97,6 +109,7 @@ export class MediaService {
   private static instance: MediaService;
   private albumsCache: Map<string, CacheEntry<Album>> = new Map();
   private photosCache: Map<string, CacheEntry<PhotoPage>> = new Map();
+  private thumbnailsCache: Map<string, CacheEntry<string>> = new Map();
   private inFlight: Map<string, InFlightRequest<unknown>> = new Map();
 
   private constructor() {}
@@ -128,10 +141,12 @@ export class MediaService {
 
   private getCachedAlbums(): Album[] {
     const now = Date.now();
-    const entries = Array.from(this.albumsCache.entries());
-    const valid = entries.filter(([, entry]) => now - entry.timestamp < ALBUMS_CACHE_TTL);
-    this.albumsCache = new Map(valid);
-    return valid.map(([, entry]) => entry.value);
+    for (const [id, entry] of this.albumsCache) {
+      if (now - entry.timestamp >= ALBUMS_CACHE_TTL) {
+        this.albumsCache.delete(id);
+      }
+    }
+    return Array.from(this.albumsCache.values(), entry => entry.value);
   }
 
   async getAlbums(offset: number, limit: number): Promise<Album[]> {
@@ -199,12 +214,21 @@ export class MediaService {
       const now = Date.now();
       this.photosCache.set(cacheKey, { value: result, timestamp: now });
       lruEvict(this.photosCache, PHOTOS_CACHE_MAX);
-      this.inFlight.delete(cacheKey);
 
       return result;
     });
 
-    this.inFlight.set(cacheKey, { promise, timestamp: Date.now() });
+    // A rejected request must release its slot, otherwise every later call for
+    // this page would coalesce onto the same rejected promise forever. The
+    // identity check avoids deleting a newer request's slot after clearCache().
+    const entry: InFlightRequest<PhotoPage> = { promise, timestamp: Date.now() };
+    this.inFlight.set(cacheKey, entry);
+    const releaseSlot = () => {
+      if (this.inFlight.get(cacheKey) === entry) {
+        this.inFlight.delete(cacheKey);
+      }
+    };
+    promise.then(releaseSlot, releaseSlot);
     return promise;
   }
 
@@ -235,18 +259,43 @@ export class MediaService {
 
   async getAlbumThumbnail(albumId: string): Promise<string | undefined> {
     if (isWebPlatform()) return undefined;
+
+    // Every AlbumCard requests its thumbnail on mount, and FlashList recycles
+    // cards aggressively while scrolling; without a shared cache each recycle
+    // would issue another native getAssetsAsync round-trip for the same album.
+    const cached = this.thumbnailsCache.get(albumId);
+    if (cached && Date.now() - cached.timestamp < THUMBNAILS_CACHE_TTL) {
+      return cached.value;
+    }
+
+    const inFlightKey = `thumb_${albumId}`;
+    const inFlight = this.inFlight.get(inFlightKey) as InFlightRequest<string | undefined> | undefined;
+    if (inFlight) {
+      return inFlight.promise;
+    }
+
     try {
-      const assets = await this.withRetry(() =>
-        MediaLibrary.getAssetsAsync({
+      const promise = this.withRetry(async () => {
+        const assets = await MediaLibrary.getAssetsAsync({
           album: albumId,
           first: 1,
           mediaType: MediaLibrary.MediaType.photo,
-        })
-      );
-      return assets.assets[0]?.uri;
+        });
+        return assets.assets[0]?.uri;
+      });
+
+      this.inFlight.set(inFlightKey, { promise, timestamp: Date.now() });
+      const uri = await promise;
+      if (uri) {
+        this.thumbnailsCache.set(albumId, { value: uri, timestamp: Date.now() });
+        lruEvict(this.thumbnailsCache, THUMBNAILS_CACHE_MAX);
+      }
+      return uri;
     } catch (error) {
       console.error('Error fetching album thumbnail:', error);
       return undefined;
+    } finally {
+      this.inFlight.delete(inFlightKey);
     }
   }
 
@@ -301,6 +350,10 @@ export class MediaService {
         entry.value.count = Math.max(0, entry.value.count - 1);
         entry.timestamp = now;
       }
+      // The cover may have been the deleted asset; refetch it lazily.
+      for (const albumId of affectedAlbumIds) {
+        this.thumbnailsCache.delete(albumId);
+      }
     }
 
       return true;
@@ -318,6 +371,7 @@ export class MediaService {
   clearCache() {
     this.albumsCache.clear();
     this.photosCache.clear();
+    this.thumbnailsCache.clear();
     this.inFlight.clear();
   }
 }

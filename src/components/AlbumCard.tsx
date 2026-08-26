@@ -1,8 +1,8 @@
 import * as Haptics from 'expo-haptics';
+import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import React, { memo, useCallback } from 'react';
 import {
-    ImageBackground,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -108,11 +108,17 @@ const AlbumCard: React.FC<AlbumCardProps> = memo(({ album, onPress }) => {
         style={styles.touchable}
       >
         {thumbnailUri ? (
-          <ImageBackground
-            source={{ uri: thumbnailUri }}
-            resizeMode="cover"
-            style={styles.imageBackground}
-          >
+          <View style={styles.imageBackground}>
+            {/* expo-image keeps covers in a shared memory+disk cache and
+                downsamples to the rendered size, unlike RN ImageBackground
+                which decodes the full-resolution original on every bind. */}
+            <Image
+              source={{ uri: thumbnailUri }}
+              style={StyleSheet.absoluteFill}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
             <Animated.View
               style={[styles.overlay, overlayStyle]}
             />
@@ -131,7 +137,7 @@ const AlbumCard: React.FC<AlbumCardProps> = memo(({ album, onPress }) => {
                 {album.count} photo{album.count !== 1 ? 's' : ''}
               </Text>
             </LinearGradient>
-          </ImageBackground>
+          </View>
         ) : (
           <View style={[styles.noImageContainer, { backgroundColor: colors.surface }]}>
             <Animated.View

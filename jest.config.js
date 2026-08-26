@@ -10,6 +10,9 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/__tests__/**',
     '!src/**/*.test.{ts,tsx}',
+    // Type-only modules carry no runtime code; counting them deflates real
+    // coverage numbers without representing any testable behavior.
+    '!src/types/**',
   ],
   coverageThreshold: {
     global: {

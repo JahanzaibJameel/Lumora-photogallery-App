@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
 
 type GridSize = 'small' | 'medium' | 'large';
 
@@ -19,8 +19,15 @@ export const GridSizeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     );
   }, []);
 
+  // Stable identity: without memoization every provider render hands consumers
+  // a fresh value object and re-renders the entire tree below it.
+  const value = useMemo(
+    () => ({ gridSize, setGridSize, cycleGridSize }),
+    [gridSize, cycleGridSize]
+  );
+
   return (
-    <GridSizeContext.Provider value={{ gridSize, setGridSize, cycleGridSize }}>
+    <GridSizeContext.Provider value={value}>
       {children}
     </GridSizeContext.Provider>
   );

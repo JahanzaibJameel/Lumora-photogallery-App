@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
+import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
 import { BackHandler, Dimensions, StatusBar, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
@@ -17,6 +18,8 @@ import { usePhotoGestures } from './PhotoViewer/PhotoViewerGestures';
 import { BackButton, NavArrow, PhotoInfoBadge } from './PhotoViewer/PhotoViewerOverlay';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
+
+const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 type PhotoViewerRouteProp = RouteProp<RootStackParamList, 'PhotoViewer'>;
 
@@ -85,6 +88,16 @@ const PhotoViewer = () => {
     return () => backHandler.remove();
   }, [handleBack]);
 
+  // Warm the image cache for both neighbours so a swipe resolves from memory
+  // instead of waiting on a decode round-trip mid-gesture.
+  useEffect(() => {
+    const neighbourUris = [photos[currentIndex - 1]?.uri, photos[currentIndex + 1]?.uri]
+      .filter((uri): uri is string => Boolean(uri));
+    if (neighbourUris.length > 0) {
+      Image.prefetch(neighbourUris);
+    }
+  }, [currentIndex, photos]);
+
   if (photos.length === 0) {
     return (
       <View style={styles.emptyContainer}>
@@ -104,7 +117,7 @@ const PhotoViewer = () => {
     <View style={styles.container} accessibilityViewIsModal={true}>
       <GestureDetector gesture={Gesture.Simultaneous(pinchGesture, Gesture.Race(swipeGesture, panGesture))}>
         <Animated.View style={styles.imageContainer}>
-          <Animated.Image
+          <AnimatedExpoImage
             source={{ uri: currentPhoto.uri }}
             style={[
               animatedStyle,
@@ -114,7 +127,8 @@ const PhotoViewer = () => {
                 maxHeight: SCREEN_HEIGHT,
               },
             ]}
-            resizeMode="contain"
+            contentFit="contain"
+            cachePolicy="memory-disk"
             accessibilityLabel={`Photo ${currentIndex + 1} of ${photos.length}`}
             accessible={true}
           />

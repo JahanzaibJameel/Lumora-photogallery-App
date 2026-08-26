@@ -26,6 +26,11 @@ interface PhotoGridItemProps {
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
+// FlashList recycles cells aggressively, so mount effects fire again for every
+// recycled view; remembering which photos already played their entrance keeps
+// fast scrolling free of replaying stagger springs.
+const entrancePlayedFor = new Set<string>();
+
 const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
   photo,
   index,
@@ -35,13 +40,18 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(reduceMotion ? 1 : 0);
-  const translateY = useSharedValue(reduceMotion ? 0 : 20);
+  const opacity = useSharedValue(reduceMotion || entrancePlayedFor.has(photo.id) ? 1 : 0);
+  const translateY = useSharedValue(reduceMotion || entrancePlayedFor.has(photo.id) ? 0 : 20);
 
   useEffect(() => {
-    if (reduceMotion) return;
+    if (reduceMotion || entrancePlayedFor.has(photo.id)) {
+      opacity.value = 1;
+      translateY.value = 0;
+      return;
+    }
     opacity.value = withDelay(index * 30, withSpring(1, { damping: 20 }));
     translateY.value = withDelay(index * 30, withSpring(0, { damping: 20 }));
+    entrancePlayedFor.add(photo.id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photo.id, index, reduceMotion]);
 

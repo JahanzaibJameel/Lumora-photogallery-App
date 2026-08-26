@@ -1,364 +1,217 @@
 <p align="center">
-  <img src="./assets/images/icon.png" width="140" height="140" alt="Lumora Logo" />
+  <img src="./assets/images/icon.png" width="140" height="140" alt="Lumora icon" />
 </p>
 
 <h1 align="center">Lumora</h1>
 
 <p align="center">
-  <strong>The photo gallery, reimagined for 2026.</strong><br>
-  <em>Intelligent albums, fluid interactions, and a design that breathes.</em>
+  <strong>A cross-platform photo gallery built with React Native and Expo.</strong><br>
+  Album browsing, an immersive full-screen viewer, in-app widgets, and a token-based theme system.
 </p>
 
 <p align="center">
-   <a href="https://github.com/JahanzaibJameel/lumora/blob/main/LICENSE">
-    <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License">
+  <a href="https://github.com/JahanzaibJameel/Lumora-photogallery-App/actions/workflows/ci.yml">
+    <img src="https://github.com/JahanzaibJameel/Lumora-photogallery-App/actions/workflows/ci.yml/badge.svg" alt="CI status">
   </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/platform-iOS%20%7C%20Android%20%7C%20Web-lightgrey?style=flat-square" alt="Platforms">
+  <a href="./LICENSE">
+    <img src="https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square" alt="License: MIT">
   </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/Expo-SDK%2053-000020?style=flat-square&logo=expo" alt="Expo SDK 53">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/React%20Native-0.79.6-61dafb?style=flat-square&logo=react" alt="React Native">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript Strict">
-  </a>
-  <a href="#">
-    <img src="https://img.shields.io/badge/tests-333%20passing-brightgreen?style=flat-square" alt="Tests passing">
-  </a>
+  <img src="https://img.shields.io/badge/Expo%20SDK-53.0-000020?style=flat-square&logo=expo" alt="Expo SDK 53">
+  <img src="https://img.shields.io/badge/React%20Native-0.79.6-61dafb?style=flat-square&logo=react" alt="React Native 0.79.6">
+  <img src="https://img.shields.io/badge/TypeScript-strict-3178c6?style=flat-square&logo=typescript&logoColor=white" alt="TypeScript strict">
+  <img src="https://img.shields.io/badge/tests-357%20passing-brightgreen?style=flat-square" alt="357 tests passing">
 </p>
 
 ---
 
-# ✨ Why Lumora?
+## Status
 
-Your memories deserve more than a grid.
+**v1.0.0 — active development.** The core gallery experience (albums, photo grid, viewer, themes, widgets dashboard, error handling, test suite at 93%+ line coverage) is implemented and covered by CI. Several secondary features are partially implemented — see [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for the precise implemented / partial / planned breakdown.
 
-**Lumora** combines **smooth performance**, **privacy-first design**, and a **thoughtful user experience** to create a gallery that feels alive. Smart album organization, a full-screen immersive viewer, and in-app home-screen widgets deliver a polished photo browsing experience across iOS, Android, and Web.
+## Key Features
 
----
-
-# 🚀 Feature Highlights
-
-<table>
-  <tr>
-    <td width="50%">
-      <h3>🖼️ Adaptive Photo Grid</h3>
-      <p>A responsive grid with three density presets (small / medium / large), powered by FlashList for native-speed recycling while keeping every cell pixel-crisp.</p>
-    </td>
-    <td width="50%">
-      <h3>🔍 Immersive Viewer</h3>
-      <p>Pinch-to-zoom, swipe, and pan through full-resolution images with buttery-smooth animations and haptic feedback.</p>
-    </td>
-  </tr>
-
-  <tr>
-    <td>
-      <h3>🧩 In-App Widgets</h3>
-      <p>Configure daily memory, random photo, album preview, and favorites widgets with real-time previews and hourly auto-refresh.</p>
-    </td>
-    <td>
-      <h3>🎨 Adaptive Themes</h3>
-      <p>Automatic light, dark, and system theme modes with full color-token support for every surface.</p>
-    </td>
-  </tr>
-
-  <tr>
-    <td>
-      <h3>♿ Accessibility</h3>
-      <p>Reduced motion support (system + manual override), semantic roles and labels, live regions, and thoughtful touch targets throughout.</p>
-    </td>
-    <td>
-      <h3>🛡️ Resilient by Design</h3>
-      <p>Typed error taxonomy (<code>AppError</code>), categorized failures, retry with backoff caps, error boundaries, and graceful empty/error states on every screen.</p>
-    </td>
-  </tr>
-</table>
-
----
-
-# 🧰 Tech Stack
-
-| Layer | Technology | Purpose |
+| Feature | State | Notes |
 | :--- | :--- | :--- |
-| **Framework** | React Native 0.79.6 + Expo SDK 53 + React 19 | Cross-platform foundation |
-| **Navigation** | React Navigation v7 (Stack) | Screen navigation & deep linking |
-| **Animations** | React Native Reanimated 3.17 | Native 60 FPS animations |
-| **Gestures** | React Native Gesture Handler v2 | Composable touch interactions |
-| **Lists** | @shopify/flash-list 1.7.6 | Performant virtualized rendering |
-| **Styling** | React Native StyleSheet + design tokens | Zero-runtime styling |
-| **Storage** | react-native-mmkv 3.2 | Ultra-fast native key-value storage |
-| **Media** | expo-media-library 17.1 | Device photo & album access |
-| **Image Loading** | expo-image 2.4 | Cached image loading |
-| **Icons** | @expo/vector-icons 14.1 | Modern iconography |
-| **Effects** | expo-blur 14.1 · expo-linear-gradient · expo-haptics | Blur, gradients, tactility |
-| **Testing** | Jest 29 + jest-expo + @testing-library/react-native | Unit, component & screen testing |
+| Album browsing with covers | Implemented | Paginated `FlashList` grid, pull-to-refresh, skeleton loading states |
+| Photo grid with adaptive density | Implemented | Small (4 col) / medium (3 col) / large (2 col) cycling; density is not persisted |
+| Full-screen photo viewer | Implemented | Pinch-to-zoom, pan, swipe navigation, haptics, neighbour image prefetch |
+| Photo deletion | Implemented | Long-press → confirm dialog → targeted cache invalidation |
+| Light / dark / system themes | Implemented | Persisted via MMKV; typed `ColorTokens` derived from the palettes |
+| Reduced motion support | Implemented | System detection + manual override (`system` / `always` / `never`), persisted |
+| In-app widget dashboard | Partially implemented | Daily-memory / random-photo / favorites / album-preview cards with live previews and hourly refresh; **configuration toggles are session-only**, and **widgets are in-app only — there are no native home-screen widgets** |
+| Favorites | Partially implemented | Storage key and favorites widget exist; no UI to mark a photo as favorite yet |
+| Search | Partially implemented | Debounced filename/album-ID filter within loaded photos; history is persisted but has no UI |
+| Typed error taxonomy + reporting seam | Implemented | `AppError` categories/severities, retry with backoff, error boundaries; reporter has listeners but **no crash-reporting backend wired** |
 
----
+## Technology Stack
 
-# 📦 Installation
+| Layer | Technology |
+| :--- | :--- |
+| Framework | [React Native](https://reactnative.dev) 0.79.6 · [Expo SDK](https://expo.dev) 53 · React 19 (New Architecture enabled) |
+| Language | TypeScript 5.8 (strict mode) |
+| Navigation | React Navigation v7 — `@react-navigation/stack` navigator |
+| Lists | [@shopify/flash-list](https://shopify.github.io/flash-list/) 1.7.6 |
+| Animations | React Native Reanimated ~3.17.4 (+ React Compiler experiment enabled) |
+| Gestures | React Native Gesture Handler ~2.24 |
+| Media access | expo-media-library ~17.1 (native-only APIs; web degrades to empty states) |
+| Images | expo-image ~2.4 with memory+disk caching |
+| Storage | react-native-mmkv ^3.2 (synchronous on-device key-value store) |
+| Effects | expo-blur, expo-linear-gradient, expo-haptics, @expo/vector-icons |
+| Testing | Jest 29 + jest-expo + @testing-library/react-native 12 |
 
-## ✅ Prerequisites
+## Architecture Overview
 
-- Node.js **20+**
-- macOS + **Xcode 15+** (iOS builds)
-- Android Studio with **SDK 34+**
-- Expo CLI *(included via `npx expo`)*
+Lumora follows a layered architecture:
 
----
+```text
+Screens → Hooks → Services → Native modules (expo-media-library, MMKV)
+                    ↑
+        Contexts (Theme, ReducedMotion, GridSize)
+```
 
-## 🚀 Quick Start
+- **Screens** compose UI and consume hooks.
+- **Hooks** own data fetching, pagination, retry/backoff, and mutation state.
+- **Services** are singletons wrapping native modules, with TTL caches, in-flight request deduplication, and targeted cache invalidation.
+- **Contexts** provide theme, reduced-motion, and grid-density state.
+- All failures flow through a typed `AppError` taxonomy into an injectable error reporter.
+
+Full details: [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md).
+
+## Project Structure
+
+```text
+src/
+├── app.tsx                  # Provider composition + status bar + error boundary
+├── index.js                 # RN entry point (registerRootComponent)
+├── components/              # Shared UI (+ components/primitives)
+├── contexts/                # Theme, ReducedMotion, GridSize providers
+├── hooks/                   # Data fetching + UI logic hooks
+├── navigation/              # RootNavigator (typed stack)
+├── screens/                 # Albums, Photos, PhotoViewer (+ internals), Widgets
+├── services/                # media / storage / widget singletons
+├── test-utils/              # Factories, mock builders, renderWithProviders
+├── theme/                   # Design tokens (colors, spacing, typography, …)
+├── types/                   # Domain models + RootStackParamList
+└── utils/                   # Error taxonomy, reporting, a11y helpers
+```
+
+## Prerequisites
+
+- **Node.js 20+** (CI runs on Node 20.x)
+- **npm 10+**
+- iOS builds: macOS with Xcode (for the simulator)
+- Android builds: Android Studio with an emulator
+- Web: any modern browser
+
+## Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/JahanzaibJameel/lumora-photogallery-App.git
-
-# Navigate into the project
-cd lumora-photogallery-app
-
-# Install dependencies
+git clone https://github.com/JahanzaibJameel/Lumora-photogallery-App.git
+cd Lumora-photogallery-App
 npm install
-
-# Start Expo
 npx expo start
 ```
 
-### Run on your preferred platform
+In the Expo dev menu press `i` (iOS simulator), `a` (Android emulator), or `w` (web browser).
 
-```text
-i → iOS Simulator
+> The repo pins `.npmrc` to `legacy-peer-deps=true`; keep it in place so dependency resolution matches CI.
 
-a → Android Emulator
+## Environment Configuration
 
-w → Web Browser
-```
+There are **no environment variables** to configure. Runtime configuration lives in:
 
----
+- [`app.json`](./app.json) — app identity, icons/splash, platform options, Expo plugins, experiments (`typedRoutes`, `reactCompiler`)
+- [`tsconfig.json`](./tsconfig.json) — strict TypeScript, `@/*` path alias
+- [`eslint.config.mjs`](./eslint.config.mjs), [`jest.config.js`](./jest.config.js), [`babel.config.js`](./babel.config.js)
 
-# 🔨 Development
-
-## Scripts
+## Development Commands
 
 | Command | Description |
 | :--- | :--- |
 | `npm start` | Start the Expo dev server |
-| `npm run android` | Start on Android emulator |
-| `npm run ios` | Start on iOS simulator |
-| `npm run web` | Start the web dev server |
-| `npm run lint` | Run ESLint (flat config, `eslint.config.mjs`) |
-| `npm run type-check` | Run strict TypeScript checking (`tsc --noEmit`) |
-| `npm test` | Run the Jest test suite |
-| `npm run test:watch` | Run tests in watch mode |
-| `npm run test:coverage` | Run tests with coverage report (thresholds enforced) |
-| `npm run build` | Production web export (`expo export`) |
+| `npm run android` / `ios` / `web` | Start on a specific platform |
+| `npm run lint` | ESLint (flat config via `expo lint`) |
+| `npm run type-check` | Strict TypeScript check (`tsc --noEmit --skipLibCheck`) |
+| `npm test` | Run the Jest suite (39 suites / 357 tests) |
+| `npm run test:watch` | Jest in watch mode |
+| `npm run test:coverage` | Jest with coverage report; 70% floors enforced |
+| `npm run build` | Static web export (`expo export --platform web`) |
 | `npm run build:android` / `build:ios` | Platform exports |
+| `npm run reset-project` | Reset scaffolding script from the Expo template |
 
-## Quality Standards
+## Testing
 
-- **TypeScript** — strict mode across all source files; `npm run type-check` must stay green
-- **ESLint** — flat config with **zero errors** enforced
-- **Tests** — every PR keeps the suite green; coverage floors (**70%** branches/functions/lines/statements) are enforced by `jest.config.js`
-- Components are `memo`-wrapped with explicit `displayName`
-- Interactive elements ship `accessibilityRole`, `accessibilityLabel`, and `accessibilityHint`
+The colocated suite (`src/**/*.test.tsx?` plus `__tests__/App.test.tsx`) covers every hook, service, context, screen, component primitive, and utility. Current global coverage: **93.6% statements / 83.3% branches / 90.8% functions / 94.1% lines**, against enforced 70% floors.
 
----
+See [docs/TESTING.md](./docs/TESTING.md) for conventions, fixtures (`makePhoto`, `makeAlbum`, …), and mock infrastructure.
 
-# 🏗️ Project Architecture
+## Linting and Formatting
 
-```text
-src/
-├── app.tsx                  # Root app component (providers + error boundary)
-├── index.js                 # React Native entry point
-│
-├── components/              # Shared UI components
-│   ├── AlbumCard.tsx        #   Album tile with thumbnail caching
-│   ├── BlurHashImage.tsx    #   Cached image wrapper (expo-image)
-│   ├── BlurHeader.tsx       #   Translucent header with search toggle
-│   ├── EmptyState.tsx       #   Permission / empty / error states
-│   ├── ErrorBoundary.tsx    #   Render-error recovery shell
-│   ├── PhotoGridItem.tsx    #   Animated grid cell
-│   ├── Skeleton.tsx         #   Loading placeholders
-│   └── primitives/          #   IconButton · SearchBar · Text
-│
-├── contexts/                # Cross-cutting providers
-│   ├── GridSizeContext.tsx  #   Grid density (small/medium/large)
-│   ├── ReducedMotionContext.tsx # Motion preference (system + override)
-│   └── ThemeContext.tsx     #   Theme mode + color tokens
-│
-├── hooks/                   # Custom React hooks
-│   ├── useAlbums.ts         # Album pagination + retry
-│   ├── useAlbumThumbnail.ts # Lazy album cover resolution
-│   ├── usePermission.tsx    # Media library permission flow
-│   ├── usePhotos.ts         # Photo pagination + delete + retry
-│   ├── useReducedMotion.ts  # Reduced motion accessor
-│   ├── useSearch.ts         # Search history + debounced value
-│   ├── useTheme.ts          # Theme accessor
-│   ├── useWidgetConfig.ts   # Widget configuration CRUD
-│   ├── useWidgetData.ts     # Widget data loading per type
-│   └── useWidgets.ts        # Widget orchestration hook
-│
-├── navigation/
-│   └── RootNavigator.tsx    # Stack navigator, motion-aware transitions
-│
-├── screens/
-│   ├── AlbumsScreen.tsx     # Album list + pull-to-refresh
-│   ├── PhotosScreen.tsx     # Photo grid + search + grid-size cycling
-│   ├── WidgetsScreen.tsx    # Widget configuration + previews
-│   ├── PhotoViewer.tsx      # Full-screen viewer (zoom/swipe/haptics)
-│   └── PhotoViewer/         #   Viewer internals
-│       ├── PhotoViewerGestures.tsx
-│       └── PhotoViewerOverlay.tsx
-│
-├── services/                # Singleton business logic
-│   ├── media.service.ts     # MediaLibrary facade + TTL caches + retry
-│   ├── storage.service.ts   # MMKV persistence + thumbnail cache
-│   └── widget.service.ts    # Widget data builders + cache
-│
-├── test-utils/              # Shared test infrastructure
-│   ├── factories.ts         # makePhoto / makeAlbum / makeWidget* fixtures
-│   ├── mocks.ts             # Typed mock service builders
-│   └── index.tsx            # renderWithProviders + RTL re-exports
-│
-├── theme/                   # Design tokens
-│   ├── colors.ts            # Light/dark palettes + ColorTokens type
-│   ├── spacing.ts · borderRadius.ts · typography.ts
-│   ├── opacity.ts · elevation.ts
-│   └── tokens.ts            # Token re-exports
-│
-├── types/
-│   ├── index.ts             # Album, Photo domain types
-│   └── navigation.ts        # RootStackParamList
-│
-└── utils/
-    ├── errors.ts            # AppError + categorizeError taxonomy
-    ├── errorReporting.ts    # Pluggable reporter (Sentry-ready)
-    ├── accessibility.ts     # A11y label helpers
-    └── helpers.ts           # hexToRgba
-```
+- ESLint flat config ([`eslint.config.mjs`](./eslint.config.mjs)): **0 errors expected**; a small set of warnings remains in test files and is tracked in [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md).
+- No Prettier config yet — follow the prevailing style (2-space indent, single quotes, trailing commas).
 
-### Layered Architecture
-
-The project follows a clean layered architecture:
-
-1. **Screens** — Top-level views that compose components, hooks, and services
-2. **Hooks** — Encapsulate data fetching, state management, and side effects
-3. **Services** — Singleton data services (MediaService, StorageService, WidgetService)
-4. **Contexts** — Cross-cutting concerns (Theme, ReducedMotion, GridSize)
-5. **Components** — Reusable UI primitives and composite components
-6. **Theme** — Design tokens (colors, spacing, typography, radius, elevation)
-7. **Types** — Shared TypeScript interfaces
-
-### Data Flow
-
-```
-Screens → Hooks (useAlbums, usePhotos, useWidgets) → Services (MediaService, StorageService, WidgetService) → expo-media-library / MMKV
-```
-
----
-
-# 🧠 Key Design Decisions
-
-### StyleSheet over NativeWind
-
-Zero runtime overhead, excellent TypeScript support, predictable styling, and first-class web compatibility. No external CSS-in-JS runtime.
-
-### MMKV Storage
-
-Native key-value storage via `react-native-mmkv` for ultra-fast synchronous persistence of favorites, settings, search history, thumbnails, and widget data.
-
-### Gesture Handler v2 + Reanimated Worklets
-
-Composable gestures and worklet-driven animations provide a true native experience for pinch-to-zoom and swipe navigation — with a full reduced-motion bypass path.
-
-### MediaService Singleton
-
-A singleton `MediaService` with in-memory `Map`-based TTL caches for albums and photo pages, batched pagination, transient-failure retry, and selective invalidation on photo deletion.
-
-### Typed Error Taxonomy
-
-All failures flow through `categorizeError` into a typed `AppError` (category, severity, code, context), consumed by `errorReporter` (pluggable Sentry integration point), error boundaries, and user-facing `EmptyState` variants — so retry logic and UI messaging stay data-driven instead of string-matched at the view layer.
-
-### WidgetService Caching
-
-A 5-minute TTL cache avoids redundant native media-library queries during periodic refreshes. Batched `getPhotosByIds` and parallelized `Promise.all` album queries eliminate N+1 patterns.
-
----
-
-# 🧪 Testing
-
-The suite runs **36 test suites / 333 tests** with enforced coverage floors:
+## Build Instructions
 
 ```bash
-npm test                 # full suite
-npm run test:watch       # watch mode
-npm run test:coverage    # coverage report (70% floors enforced)
+npm run build            # web → dist/
+npm run build:android    # Android export
+npm run build:ios        # iOS export
 ```
 
-## Current Coverage
+These produce static export bundles via `expo export`. There is **no EAS Build / store-submission configuration yet** — see [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
 
-| Metric | Global |
+## Deployment
+
+CI performs a web export on pushes to `main`. Deployment targets are not configured; the repo currently ships source + exports only. Details and constraints: [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md).
+
+## Security Considerations
+
+- The app requests **read/write media library permissions only**, on demand, through `usePermission`.
+- All persistence is **local on-device** (MMKV). No accounts, no network calls, no analytics/telemetry.
+- `errorReporter` is a local event bus with a commented Sentry integration point — nothing leaves the device today.
+
+Details and reporting policy: [SECURITY.md](./SECURITY.md).
+
+## Performance Considerations
+
+- FlashList with measured `estimatedItemSize`, `removeClippedSubviews`, and proactive pagination (`onEndReachedThreshold={0.5}`)
+- TTL + LRU caches in `MediaService` (albums 5 min / photos 2 min / thumbnails 10 min) with in-flight request coalescing
+- Batched photo lookups (`getPhotosByIds`) and parallelized album scans (`Promise.all`) instead of sequential N+1 queries
+- Targeted cache invalidation after deletions (only affected pages/albums/thumbnails are dropped)
+- Neighbour-image prefetch in the viewer; memoized providers/components; worklet-driven gestures
+
+## Accessibility Considerations
+
+- Semantic roles, labels, and hints on interactive elements; live regions on empty/error states
+- 48pt minimum touch targets (`MIN_TOUCH_TARGET`)
+- Reduced motion honored system-wide with a manual override; all animations have a zero-motion path (including navigation transitions)
+
+## Platform Support
+
+| Platform | State |
 | :--- | :--- |
-| Statements | **86%** |
-| Branches | **78%** |
-| Functions | **84%** |
-| Lines | **86%** |
+| Android | Supported (adaptive icon, edge-to-edge, hardware back handling) |
+| iOS | Supported (tablet-capable, modal viewer presentation) |
+| Web | Runs, but the gallery shows natural empty states — `expo-media-library` album/asset APIs are native-only by design |
 
-Coverage spans services, every custom hook, all four screens plus the photo viewer internals, contexts, navigation, root provider composition, primitives, and utility modules.
+## Known Limitations
 
-## Test Infrastructure (`src/test-utils/`)
+See [docs/PROJECT_STATUS.md](./docs/PROJECT_STATUS.md) for the full list, including: non-persisted widget/grid preferences, favorites without a favoriting UI, search limited to filename/album ID within loaded pages, English-only strings, and lint warnings in test files.
 
-Shared helpers keep tests DRY and behavior-focused:
+## Roadmap
 
-- **`factories.ts`** — `makePhoto`, `makeAlbum`, `makeWidgetData`, `makeWidgetConfig`, and raw MediaLibrary fixture builders. Every factory accepts partial overrides and derives sensible defaults from IDs:
+[docs/ROADMAP.md](./docs/ROADMAP.md).
 
-```ts
-import { makePhoto, makeAlbum } from '../test-utils';
+## Contributing
 
-const photo = makePhoto({ id: 'p2' });                    // uri/filename derived: file://p2.jpg
-const beach = makeAlbum({ id: 'a1', title: 'Beach' });    // overrides object…
-const quick  = makeAlbum('a2');                           // …or plain-id shorthand
-```
+Contributions welcome — read [docs/CONTRIBUTING.md](./docs/CONTRIBUTING.md) for the workflow (Conventional Commits, required gates: `lint`, `type-check`, `test`).
 
-- **`mocks.ts`** — typed mock service builders (`makeMockMediaService`, `makeMockWidgetService`) so hook tests don't hand-roll mock objects.
-- **`index.tsx`** — `renderWithProviders` wraps components in `ThemeProvider` + `ReducedMotionProvider`, mirroring production composition, plus RTL re-exports (`renderHook`, `waitFor`, `fireEvent`).
+## License
 
-```tsx
-import { renderWithProviders, makeAlbum } from '../test-utils';
-
-it('renders an album card', () => {
-  const { getByText } = renderWithProviders(
-    <AlbumCard album={makeAlbum({ title: 'Beach' })} onPress={jest.fn()} />
-  );
-  expect(getByText('Beach')).toBeTruthy();
-});
-```
-
-## Native Module Mocks
-
-`jest.setup.js` provides comprehensive mocks for Reanimated, MMKV, expo-media-library, FlashList, Gesture Handler, Safe Area, and React Navigation — so tests exercise real app code against deterministic platform fakes. Retry paths are covered with Jest fake timers.
-
-Prefer asserting on `accessibilityLabel` over visible copy — it keeps tests resilient to wording changes and reinforces the a11y contract.
-
----
-
-# 📚 Documentation
-
-- [`docs/ARCHITECTURE.md`](./docs/ARCHITECTURE.md) — full layered architecture reference
-- [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) — development workflow & conventions
-
----
-
-# 📄 License
-
-This project is distributed under the **MIT License**.
-
-See the **LICENSE** file for more information.
+Distributed under the [MIT License](./LICENSE).
 
 ---
 
 <p align="center">
-  <sub>Built with ❤️ and plenty of ☕ using Expo & React Native.</sub><br>
-  <sub>© 2026 Lumora. All rights reserved.</sub>
+  <sub>Built with Expo and React Native.</sub>
 </p>

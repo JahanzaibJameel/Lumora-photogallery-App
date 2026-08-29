@@ -26,6 +26,7 @@ export const usePhotos = (albumId: string) => {
 
   const endCursor = useRef<string | undefined>(undefined);
   const hasMore = useRef(true);
+  const cancelled = useRef(false);
   // Mirrors state.retryCount so loadPhotos only depends on albumId
   // (adding reactive retryCount would re-trigger the mount effect after
   // every failure and cause an automatic retry loop).
@@ -54,6 +55,8 @@ export const usePhotos = (albumId: string) => {
         PHOTOS_BATCH_SIZE
       );
 
+      if (cancelled.current) return;
+
       hasMore.current = result.hasNextPage;
 
       setState(s => ({
@@ -64,6 +67,7 @@ export const usePhotos = (albumId: string) => {
       endCursor.current = result.endCursor ?? undefined;
 
     } catch (err) {
+      if (cancelled.current) return;
       const appError = categorizeError(err);
       retryCountRef.current += 1;
       appError.context = { ...appError.context, albumId, retryCount: retryCountRef.current };
@@ -75,13 +79,17 @@ export const usePhotos = (albumId: string) => {
         retryCount: s.retryCount + 1,
       }));
     } finally {
-      setState(s => ({ ...s, loading: false, refreshing: false }));
+      if (!cancelled.current) {
+        setState(s => ({ ...s, loading: false, refreshing: false }));
+      }
     }
   }, [albumId]);
 
   useEffect(() => {
+    cancelled.current = false;
     loadPhotos();
     return () => {
+      cancelled.current = true;
       if (retryTimeout.current) clearTimeout(retryTimeout.current);
     };
   }, [loadPhotos]);

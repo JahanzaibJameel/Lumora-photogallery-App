@@ -1,5 +1,6 @@
 module.exports = {
   preset: 'jest-expo',
+  testRunner: 'jest-circus/runner',
   transformIgnorePatterns: [
     'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-vector-icons|@react-navigation|@testing-library)',
   ],
@@ -22,4 +23,5 @@ module.exports = {
       statements: 70,
     },
   },
+  testPathIgnorePatterns: ['/node_modules/', '/e2e/'],
 };

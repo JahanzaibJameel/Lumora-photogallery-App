@@ -7,6 +7,9 @@ import { ReducedMotionProvider } from './contexts/ReducedMotionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useTheme } from './hooks/useTheme';
 import RootNavigator from './navigation/RootNavigator';
+import { errorReporter } from './utils/errorReporting';
+
+errorReporter.init();
 
 function MainApp() {
   const { isDark } = useTheme();

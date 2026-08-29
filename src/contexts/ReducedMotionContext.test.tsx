@@ -1,20 +1,25 @@
 import { render, renderHook, act } from '@testing-library/react-native';
 import React from 'react';
-import { storageService, StorageKeys } from '../services/storage.service';
+import { ServiceTokens, registerService, clearServices } from '../services/di';
+import { StorageKeys } from '../services/storage.service';
 import { ReducedMotionProvider, useReducedMotionContext } from './ReducedMotionContext';
 
+const mockStorage = {
+  get: jest.fn(),
+  save: jest.fn(),
+  clear: jest.fn(),
+  contains: jest.fn(),
+};
+
 jest.mock('../services/storage.service', () => ({
-  storageService: {
-    get: jest.fn(),
-    save: jest.fn(),
-    clear: jest.fn(),
-  },
+  storageService: mockStorage,
   StorageKeys: {
     REDUCED_MOTION: 'lumora_reduced_motion',
   },
+  getStorageService: jest.fn(() => mockStorage),
 }));
 
-const mockedStorage = storageService as jest.Mocked<typeof storageService>;
+const mockedStorage = mockStorage;
 
 type CapturedReducedMotionState = ReturnType<typeof useReducedMotionContext>;
 
@@ -31,6 +36,8 @@ const TestConsumer = ({ onState }: { onState: (state: { reduceMotion: boolean; r
 describe('ReducedMotionProvider', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    clearServices();
+    registerService(ServiceTokens.StorageService, mockStorage);
     mockedStorage.get.mockReturnValue(null);
   });
 

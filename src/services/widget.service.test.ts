@@ -1,32 +1,22 @@
-import { makePhoto, makeAlbum } from '../test-utils';
-import { getMediaService } from './media.service';
+import { makePhoto, makeAlbum, makeMockMediaService, mockMediaServiceDefaults } from '../test-utils';
+import { ServiceTokens, registerService, clearServices } from './di';
+import { IMediaService } from './media.service';
 import { storageService, StorageKeys } from './storage.service';
 import WidgetService, { WidgetData } from './widget.service';
-
-jest.mock('./media.service');
-
-const makeMockMediaService = () => ({
-  getAlbums: jest.fn(),
-  getPhotosFromAlbum: jest.fn(),
-  getAlbumById: jest.fn(),
-  getPhotosByIds: jest.fn(),
-  getAssetInfo: jest.fn(),
-  deletePhoto: jest.fn(),
-  clearCache: jest.fn(),
-});
 
 describe('WidgetService', () => {
   let mockMediaService: ReturnType<typeof makeMockMediaService>;
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clearServices();
     WidgetService.clearCache();
     storageService.clear();
     mockMediaService = makeMockMediaService();
+    mockMediaServiceDefaults(mockMediaService);
 
-    mockMediaService.getAlbums.mockResolvedValue([]);
-    mockMediaService.getPhotosFromAlbum.mockResolvedValue({ photos: [], endCursor: null, hasNextPage: false });
-    jest.mocked(getMediaService).mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    registerService(ServiceTokens.MediaService, mockMediaService as unknown as IMediaService);
+    registerService(ServiceTokens.StorageService, storageService);
   });
 
   describe('getDailyMemory', () => {

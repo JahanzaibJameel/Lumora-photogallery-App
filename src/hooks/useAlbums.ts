@@ -26,6 +26,7 @@ export const useAlbums = () => {
 
   const lastFetchedIndex = useRef(0);
   const hasMore = useRef(true);
+  const cancelled = useRef(false);
   // Mirrors state.retryCount so loadAlbums can stay dependency-free
   // (adding reactive retryCount to its deps would re-trigger the mount
   // effect after every failure and cause an automatic retry loop).
@@ -49,6 +50,8 @@ export const useAlbums = () => {
         BATCH_SIZE
       );
 
+      if (cancelled.current) return;
+
       if (fetchedAlbums.length < BATCH_SIZE) {
         hasMore.current = false;
       }
@@ -62,6 +65,7 @@ export const useAlbums = () => {
 
       lastFetchedIndex.current += fetchedAlbums.length;
     } catch (err) {
+      if (cancelled.current) return;
       const appError = categorizeError(err);
       retryCountRef.current += 1;
       appError.context = { ...appError.context, offset: lastFetchedIndex.current, retryCount: retryCountRef.current };
@@ -73,13 +77,17 @@ export const useAlbums = () => {
         retryCount: s.retryCount + 1,
       }));
     } finally {
-      setState(s => ({ ...s, loading: false, refreshing: false }));
+      if (!cancelled.current) {
+        setState(s => ({ ...s, loading: false, refreshing: false }));
+      }
     }
   }, []);
 
   useEffect(() => {
+    cancelled.current = false;
     loadAlbums();
     return () => {
+      cancelled.current = true;
       if (retryTimeout.current) clearTimeout(retryTimeout.current);
     };
   }, [loadAlbums]);

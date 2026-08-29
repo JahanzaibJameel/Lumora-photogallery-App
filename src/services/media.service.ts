@@ -3,6 +3,7 @@ import { Platform } from 'react-native';
 import { Album, Photo } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { categorizeError } from '../utils/errors';
+import { ServiceTokens, registerService, resolveService } from './di';
 
 // expo-media-library's album/asset APIs are native-only; calling them on web
 // throws UnavailabilityError. Callers degrade to natural empty states instead.
@@ -107,7 +108,19 @@ function lruEvict<K, V>(cache: Map<K, CacheEntry<V>>, maxSize: number): void {
   }
 }
 
-export class MediaService {
+export interface IMediaService {
+  getAlbums(offset: number, limit: number): Promise<Album[]>;
+  getPhotosFromAlbum(albumId: string, after: string | undefined, limit: number): Promise<PhotoPage>;
+  getPhotoById(photoId: string): Promise<Photo | null>;
+  getPhotosByIds(photoIds: string[]): Promise<Photo[]>;
+  getAlbumThumbnail(albumId: string): Promise<string | undefined>;
+  getAlbumById(albumId: string): Promise<Album | null>;
+  deletePhoto(photoId: string): Promise<boolean>;
+  getAssetInfo(photoId: string): Promise<MediaLibrary.Asset | null>;
+  clearCache(): void;
+}
+
+export class MediaService implements IMediaService {
   private static instance: MediaService;
   private albumsCache: Map<string, CacheEntry<Album>> = new Map();
   private photosCache: Map<string, CacheEntry<PhotoPage>> = new Map();
@@ -385,4 +398,8 @@ export class MediaService {
   }
 }
 
-export const getMediaService = () => MediaService.getInstance();
+const mediaService = MediaService.getInstance();
+
+registerService(ServiceTokens.MediaService, mediaService);
+
+export const getMediaService = (): IMediaService => resolveService<IMediaService>(ServiceTokens.MediaService);

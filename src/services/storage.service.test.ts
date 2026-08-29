@@ -13,6 +13,7 @@ describe('StorageKeys', () => {
     expect(StorageKeys.SEARCH_HISTORY).toBe('lumora_search_history');
     expect(StorageKeys.REDUCED_MOTION).toBe('lumora_reduced_motion');
     expect(StorageKeys.WIDGET_PREFIX).toBe('lumora_widget_');
+    expect(StorageKeys.WIDGET_CONFIGS).toBe('lumora_widget_configs');
   });
 });
 

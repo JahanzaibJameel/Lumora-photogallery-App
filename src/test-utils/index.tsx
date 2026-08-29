@@ -36,4 +36,4 @@ export { renderHook, waitFor, act, fireEvent };
 export { render } from '@testing-library/react-native';
 
 export { makePhoto, makeAlbum, makeAlbumResult, makeFullBatch, makeWidgetData, makeWidgetConfig, makeMediaLibraryAlbum, makeMediaLibraryAsset } from './factories';
-export { makeMockMediaService, makeMockWidgetService, mockMediaServiceDefaults, mockWidgetServiceDefaults } from './mocks';
+export { makeMockMediaService, makeMockWidgetService, makeMockStorageService, mockMediaServiceDefaults, mockWidgetServiceDefaults, mockStorageServiceDefaults } from './mocks';

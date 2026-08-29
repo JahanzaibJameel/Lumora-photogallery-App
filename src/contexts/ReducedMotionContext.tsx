@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { ReduceMotion, ReducedMotionConfig, useReducedMotion as useReanimatedReducedMotion } from 'react-native-reanimated';
-import { storageService, StorageKeys } from '../services/storage.service';
+import { getStorageService, StorageKeys } from '../services/storage.service';
 
 export type ReduceMotionMode = 'system' | 'always' | 'never';
 
@@ -23,7 +23,7 @@ export const ReducedMotionProvider: React.FC<{ children: ReactNode }> = ({ child
   const [reduceMotionMode, setReduceMotionModeState] = useState<ReduceMotionMode>('system');
 
   useEffect(() => {
-    const saved = storageService.get<string>(StorageKeys.REDUCED_MOTION);
+    const saved = getStorageService().get<string>(StorageKeys.REDUCED_MOTION);
     if (saved && ['system', 'always', 'never'].includes(saved)) {
       setReduceMotionModeState(saved as ReduceMotionMode);
     }
@@ -38,7 +38,7 @@ export const ReducedMotionProvider: React.FC<{ children: ReactNode }> = ({ child
 
   const setReduceMotionMode = useCallback((mode: ReduceMotionMode) => {
     setReduceMotionModeState(mode);
-    storageService.save(StorageKeys.REDUCED_MOTION, mode);
+    getStorageService().save(StorageKeys.REDUCED_MOTION, mode);
   }, []);
 
   const reanimatedMode = REANIMATED_MODE_MAP[reduceMotionMode];

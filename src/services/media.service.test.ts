@@ -2,6 +2,7 @@ import * as MediaLibrary from 'expo-media-library';
 import { Platform } from 'react-native';
 import { makeMediaLibraryAlbum, makeMediaLibraryAsset, makeAlbumResult, makePhoto } from '../test-utils';
 import { Album } from '../types';
+import { ServiceTokens, registerService, clearServices } from './di';
 import { MediaService, getMediaService } from './media.service';
 
 jest.mock('expo-media-library');
@@ -23,7 +24,9 @@ describe('MediaService', () => {
 
   beforeEach(() => {
     jest.clearAllMocks();
+    clearServices();
     service = MediaService.getInstance();
+    registerService(ServiceTokens.MediaService, service);
     service.clearCache();
   });
 
@@ -542,7 +545,9 @@ describe('MediaService web platform fallbacks', () => {
   beforeEach(() => {
     setPlatformOS('web');
     jest.clearAllMocks();
+    clearServices();
     service = MediaService.getInstance();
+    registerService(ServiceTokens.MediaService, service);
     service.clearCache();
   });
 

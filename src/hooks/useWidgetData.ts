@@ -1,6 +1,10 @@
 import { useCallback, useState } from 'react';
 import type { WidgetConfig, WidgetData } from '../services/widget.service';
 import { WidgetService } from '../services/widget.service';
+import { errorReporter } from '../utils/errorReporting';
+import { categorizeError } from '../utils/errors';
+
+const widgetService = WidgetService;
 
 export interface UseWidgetDataReturn {
   widgetData: Record<string, WidgetData>;
@@ -21,20 +25,20 @@ export const useWidgetData = (): UseWidgetDataReturn => {
 
       switch (widget.type) {
         case 'daily_memory':
-          data = await WidgetService.getDailyMemory();
+          data = await widgetService.getDailyMemory();
           break;
         case 'random_photo':
-          data = await WidgetService.getRandomPhotos(1);
+          data = await widgetService.getRandomPhotos(1);
           break;
         case 'album_preview':
           if (widget.albumId) {
-            data = await WidgetService.getAlbumPreview(widget.albumId);
+            data = await widgetService.getAlbumPreview(widget.albumId);
           } else {
             throw new Error('Album ID not specified');
           }
           break;
         case 'favorites':
-          data = await WidgetService.getFavorites();
+          data = await widgetService.getFavorites();
           break;
         default:
           throw new Error('Unknown widget type');
@@ -42,7 +46,11 @@ export const useWidgetData = (): UseWidgetDataReturn => {
 
       setWidgetData(prev => ({ ...prev, [widget.id]: data }));
     } catch (error) {
-      console.error(`Error fetching widget data for ${widget.id}:`, error);
+      errorReporter.capture(categorizeError(error), {
+        hook: 'useWidgetData',
+        action: 'fetchWidgetData',
+        widgetId: widget.id,
+      });
     }
   }, []);
 

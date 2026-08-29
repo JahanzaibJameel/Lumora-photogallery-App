@@ -1,4 +1,5 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { storageService } from '../services/storage.service';
 import WidgetService from '../services/widget.service';
 import { makeWidgetData } from '../test-utils';
 import { useWidgets } from './useWidgets';
@@ -14,6 +15,7 @@ describe('useWidgets', () => {
     jest.clearAllMocks();
     jest.useRealTimers();
     jest.spyOn(Date, 'now').mockReturnValue(NOW);
+    storageService.clear();
 
     mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue(makeWidgetData({ type: 'daily_memory', title: 'Daily Memory' }));

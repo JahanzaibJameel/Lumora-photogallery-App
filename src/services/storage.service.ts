@@ -1,15 +1,17 @@
 import { MMKV } from 'react-native-mmkv';
+import { ServiceTokens, registerService, resolveService } from './di';
 
 // Keys only for data that is actually read or written somewhere in the app.
 export const StorageKeys = {
   THEMES: 'lumora_themes',
   FAVORITES: 'lumora_favorites',
   WIDGET_PREFIX: 'lumora_widget_',
+  WIDGET_CONFIGS: 'lumora_widget_configs',
   SEARCH_HISTORY: 'lumora_search_history',
   REDUCED_MOTION: 'lumora_reduced_motion',
 } as const;
 
-interface IStorageService {
+export interface IStorageService {
   save(key: string, value: unknown): void;
   get<T>(key: string): T | null;
   delete(key: string): void;
@@ -17,7 +19,6 @@ interface IStorageService {
   contains(key: string): boolean;
 }
 
-// MMKV is synchronous; wrapping it in Promises would only lie about yielding.
 class StorageService implements IStorageService {
   private mmkv: MMKV;
 
@@ -52,21 +53,27 @@ class StorageService implements IStorageService {
   }
 }
 
-export const storageService = new StorageService();
+const storageService = new StorageService();
+
+registerService(ServiceTokens.StorageService, storageService);
+
+export { storageService };
+
+export const getStorageService = (): IStorageService => resolveService<IStorageService>(ServiceTokens.StorageService);
 
 export const addSearchHistory = (query: string): void => {
   const history = getSearchHistory();
   if (!history.includes(query)) {
     const newHistory = [query, ...history].slice(0, 20);
-    storageService.save(StorageKeys.SEARCH_HISTORY, newHistory);
+    getStorageService().save(StorageKeys.SEARCH_HISTORY, newHistory);
   }
 };
 
 export const clearSearchHistory = (): void => {
-  storageService.save(StorageKeys.SEARCH_HISTORY, []);
+  getStorageService().save(StorageKeys.SEARCH_HISTORY, []);
 };
 
 export const getSearchHistory = (): string[] => {
-  const history = storageService.get<string[]>(StorageKeys.SEARCH_HISTORY);
+  const history = getStorageService().get<string[]>(StorageKeys.SEARCH_HISTORY);
   return history || [];
 };

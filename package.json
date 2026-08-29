@@ -15,6 +15,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:e2e": "detox test --configuration ios.sim",
+    "test:e2e:ios": "detox test --configuration ios.sim",
+    "test:e2e:android": "detox test --configuration android.emu",
+    "build:e2e:ios": "detox build --configuration ios.sim",
+    "build:e2e:android": "detox build --configuration android.emu",
     "reset-project": "node ./scripts/reset-project.js"
   },
   "dependencies": {
@@ -50,6 +55,8 @@
     "@typescript-eslint/eslint-plugin": "^8.67.0",
     "@typescript-eslint/parser": "^8.67.0",
     "babel-plugin-react-compiler": "^19.0.0-beta-af1b7da-20250417",
+    "detox": "^20.51.4",
+    "detox-cli": "^20.51.4",
     "eslint": "^9.39.5",
     "eslint-config-expo": "~9.2.0",
     "eslint-import-resolver-typescript": "^4.4.5",
@@ -60,6 +67,7 @@
     "eslint-plugin-react-native": "^5.0.0",
     "globals": "^17.11.0",
     "jest": "^29.7.0",
+    "jest-circus": "^30.4.2",
     "jest-expo": "~53.0.14",
     "react-test-renderer": "^19.0.0",
     "typescript": "~5.8.3"

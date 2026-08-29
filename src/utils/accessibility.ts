@@ -15,10 +15,4 @@ export const ACCESSIBILITY_HINTS = {
   less: 'Shows fewer options',
 } as const;
 
-export type AccessibilityHint = keyof typeof ACCESSIBILITY_HINTS | string;
-
 export const MIN_TOUCH_TARGET = 48;
-
-export const getAccessibilityRole = (type: 'button' | 'input' | 'text' | 'image' | 'header' | 'alert' | 'adjustable' | 'summary') => {
-  return type;
-};

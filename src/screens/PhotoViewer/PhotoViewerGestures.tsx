@@ -19,7 +19,6 @@ interface GestureHandlersProps {
   photosLength: number;
   goToIndex: (index: number) => void;
   reduceMotion: boolean;
-  onPhotoNotFound?: () => void;
 }
 
 export const usePhotoGestures = ({

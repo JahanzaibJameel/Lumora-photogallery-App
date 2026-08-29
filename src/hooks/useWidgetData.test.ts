@@ -1,5 +1,6 @@
 import { renderHook, act } from '@testing-library/react-native';
 import WidgetService from '../services/widget.service';
+import { errorReporter } from '../utils/errorReporting';
 import { useWidgetData } from './useWidgetData';
 
 jest.mock('../services/widget.service');
@@ -117,5 +118,32 @@ describe('useWidgetData', () => {
     expect(mockWidgetService.getFavorites).not.toHaveBeenCalled();
     expect(result.current.widgetData['daily']).toBeDefined();
     expect(result.current.widgetData['random']).toBeDefined();
+  });
+});
+
+describe('useWidgetData error reporting', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockWidgetService.getWidgetData.mockReturnValue(null);
+  });
+
+  afterEach(() => {
+    jest.restoreAllMocks();
+  });
+
+  it('reports errors via errorReporter instead of console.error', async () => {
+    const captureSpy = jest.spyOn(errorReporter, 'capture').mockImplementation(() => undefined);
+    const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => undefined);
+    mockWidgetService.getDailyMemory.mockRejectedValue(new Error('Network error'));
+
+    const { result } = renderHook(() => useWidgetData());
+    await act(async () => {
+      await result.current.refreshWidget(makeWidget({ id: 'w1', type: 'daily_memory' }));
+    });
+
+    expect(captureSpy).toHaveBeenCalledTimes(1);
+    expect(captureSpy.mock.calls[0][0]).toHaveProperty('message', 'Network error');
+    expect(consoleSpy).not.toHaveBeenCalled();
+    expect(result.current.widgetData).toEqual({});
   });
 });

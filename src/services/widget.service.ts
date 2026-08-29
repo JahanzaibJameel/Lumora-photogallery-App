@@ -1,8 +1,10 @@
 import { Photo } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { categorizeError } from '../utils/errors';
-import { getMediaService } from './media.service';
-import { StorageKeys, storageService } from './storage.service';
+import { ServiceTokens, resolveService } from './di';
+import type { IMediaService } from './media.service';
+import type { IStorageService } from './storage.service';
+import { StorageKeys } from './storage.service';
 
 // Per-album failures inside multi-album scans degrade the widget instead of
 // failing it; they are still reported through the shared error pipeline.
@@ -86,7 +88,7 @@ export const WidgetService = {
     const cached = getCachedWidget(cacheKey);
     if (cached) return cached;
 
-    const mediaService = getMediaService();
+    const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
     const today = new Date();
     const currentMonth = today.getMonth();
     const currentDay = today.getDate();
@@ -149,7 +151,7 @@ export const WidgetService = {
     const cached = getCachedWidget(cacheKey);
     if (cached) return cached;
 
-    const mediaService = getMediaService();
+    const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
     const albums = await mediaService.getAlbums(0, 20);
 
     const results = await Promise.all(
@@ -198,7 +200,7 @@ export const WidgetService = {
     const cached = getCachedWidget(cacheKey);
     if (cached) return cached;
 
-    const mediaService = getMediaService();
+    const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
     const album = await mediaService.getAlbumById(albumId);
 
     if (!album) {
@@ -233,8 +235,9 @@ export const WidgetService = {
     const cached = getCachedWidget(cacheKey);
     if (cached) return cached;
 
-    const favoriteIds = storageService.get<string[]>(StorageKeys.FAVORITES) || [];
-    const mediaService = getMediaService();
+    const storage = resolveService<IStorageService>(ServiceTokens.StorageService);
+    const favoriteIds = storage.get<string[]>(StorageKeys.FAVORITES) || [];
+    const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
 
     const favoritePhotos = await mediaService.getPhotosByIds(favoriteIds.slice(0, 4));
 
@@ -262,11 +265,11 @@ export const WidgetService = {
    * Save widget data to storage (synchronous MMKV write).
    */
   saveWidgetData(widgetId: string, data: WidgetData): void {
-    storageService.save(`${StorageKeys.WIDGET_PREFIX}${widgetId}`, data);
+    resolveService<IStorageService>(ServiceTokens.StorageService).save(`${StorageKeys.WIDGET_PREFIX}${widgetId}`, data);
   },
 
   getWidgetData(widgetId: string): WidgetData | null {
-    return storageService.get<WidgetData>(`${StorageKeys.WIDGET_PREFIX}${widgetId}`);
+    return resolveService<IStorageService>(ServiceTokens.StorageService).get<WidgetData>(`${StorageKeys.WIDGET_PREFIX}${widgetId}`);
   },
 
   /**

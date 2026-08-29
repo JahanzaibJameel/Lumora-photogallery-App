@@ -173,3 +173,55 @@ describe('useAlbums retry behavior', () => {
     expect(mockMediaService.getAlbums).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('useAlbums cancellation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    mockMediaService.getAlbums.mockResolvedValue([]);
+  });
+
+  it('does not update state after unmount', async () => {
+    let resolveAlbums!: (value: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const pending = new Promise<any>((resolve) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      resolveAlbums = resolve;
+    });
+    mockMediaService.getAlbums.mockReturnValue(pending);
+
+    const { result, unmount } = renderHook(() => useAlbums());
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      resolveAlbums([makeAlbum('a1'), makeAlbum('a2')]);
+      await pending;
+    });
+
+    // The cancelled flag must prevent the success + finally setState calls,
+    // so loading stays true and albums stay empty.
+    expect(result.current.loading).toBe(true);
+    expect(result.current.albums).toEqual([]);
+  });
+
+  it('does not update error state after unmount on failure', async () => {
+    let rejectAlbums!: (error: unknown) => void;
+    const pending = new Promise<any>((_resolve, reject) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      rejectAlbums = reject;
+    });
+    mockMediaService.getAlbums.mockReturnValue(pending);
+
+    const { result, unmount } = renderHook(() => useAlbums());
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      rejectAlbums(new Error('Late failure'));
+      try { await pending; } catch { /* expected */ }
+    });
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+});

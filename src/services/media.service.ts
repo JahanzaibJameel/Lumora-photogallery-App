@@ -4,6 +4,7 @@ import { Album, Photo } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { categorizeError } from '../utils/errors';
 import { ServiceTokens, registerService, resolveService } from './di';
+import { IPerformanceMonitoringService } from './performance.service';
 
 // expo-media-library's album/asset APIs are native-only; calling them on web
 // throws UnavailabilityError. Callers degrade to natural empty states instead.
@@ -174,10 +175,17 @@ export class MediaService implements IMediaService {
   async getAlbums(offset: number, limit: number): Promise<Album[]> {
     if (isWebPlatform()) return [];
 
+    const perfService = this.getPerfService();
+    const timerId = perfService?.startTimer('getAlbums', 'api_call', { offset, limit });
+
     const cached = this.getCachedAlbums();
     if (cached.length > 0 && offset < cached.length) {
+      perfService?.stopTimer(timerId || '');
+      perfService?.recordCacheHitRate('albums', 1, 0);
       return cached.slice(offset, offset + limit);
     }
+
+    perfService?.recordCacheHitRate('albums', 0, 1);
 
     try {
       const albums = await this.withRetry(() =>
@@ -191,8 +199,17 @@ export class MediaService implements IMediaService {
       }
       lruEvict(this.albumsCache, ALBUMS_CACHE_MAX);
 
+      perfService?.stopTimer(timerId || '');
       return formatted.slice(offset, offset + limit);
     } catch (error) {
+      perfService?.stopTimer(timerId || '');
+      perfService?.recordApiCall({
+        method: 'getAlbums',
+        durationMs: 0,
+        success: false,
+        cached: false,
+        errorCode: error instanceof Error ? error.message : 'unknown',
+      });
       this.report(error, 'getAlbums');
       throw error;
     }
@@ -205,12 +222,19 @@ export class MediaService implements IMediaService {
   ): Promise<PhotoPage> {
     if (isWebPlatform()) return { photos: [], endCursor: null, hasNextPage: false };
 
+    const perfService = this.getPerfService();
+    const timerId = perfService?.startTimer('getPhotosFromAlbum', 'api_call', { albumId, limit });
+
     const cacheKey = `${albumId}_${after ?? 'start'}_${limit}`;
 
     const cached = this.photosCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < PHOTOS_CACHE_TTL) {
+      perfService?.stopTimer(timerId || '');
+      perfService?.recordCacheHitRate('photos', 1, 0);
       return cached.value;
     }
+
+    perfService?.recordCacheHitRate('photos', 0, 1);
 
     const inFlight = this.inFlight.get(cacheKey) as InFlightRequest<PhotoPage> | undefined;
     if (inFlight) {
@@ -282,13 +306,20 @@ export class MediaService implements IMediaService {
   async getAlbumThumbnail(albumId: string): Promise<string | undefined> {
     if (isWebPlatform()) return undefined;
 
+    const perfService = this.getPerfService();
+    const timerId = perfService?.startTimer('getAlbumThumbnail', 'api_call', { albumId });
+
     // Every AlbumCard requests its thumbnail on mount, and FlashList recycles
     // cards aggressively while scrolling; without a shared cache each recycle
     // would issue another native getAssetsAsync round-trip for the same album.
     const cached = this.thumbnailsCache.get(albumId);
     if (cached && Date.now() - cached.timestamp < THUMBNAILS_CACHE_TTL) {
+      perfService?.stopTimer(timerId || '');
+      perfService?.recordCacheHitRate('thumbnails', 1, 0);
       return cached.value;
     }
+
+    perfService?.recordCacheHitRate('thumbnails', 0, 1);
 
     const inFlightKey = `thumb_${albumId}`;
     const inFlight = this.inFlight.get(inFlightKey) as InFlightRequest<string | undefined> | undefined;
@@ -312,8 +343,10 @@ export class MediaService implements IMediaService {
         this.thumbnailsCache.set(albumId, { value: uri, timestamp: Date.now() });
         lruEvict(this.thumbnailsCache, THUMBNAILS_CACHE_MAX);
       }
+      perfService?.stopTimer(timerId || '');
       return uri;
     } catch (error) {
+      perfService?.stopTimer(timerId || '');
       this.report(error, 'getAlbumThumbnail');
       return undefined;
     } finally {
@@ -395,6 +428,14 @@ export class MediaService implements IMediaService {
     this.photosCache.clear();
     this.thumbnailsCache.clear();
     this.inFlight.clear();
+  }
+
+  private getPerfService(): IPerformanceMonitoringService | null {
+    try {
+      return resolveService<IPerformanceMonitoringService>(ServiceTokens.PerformanceService);
+    } catch {
+      return null;
+    }
   }
 }
 

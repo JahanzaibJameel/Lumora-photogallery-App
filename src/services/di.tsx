@@ -10,6 +10,7 @@ export const ServiceTokens = {
   MediaService: 'MediaService',
   StorageService: 'StorageService',
   WidgetService: 'WidgetService',
+  PerformanceService: 'PerformanceService',
 } as const;
 
 export type ServiceTokenType = typeof ServiceTokens[keyof typeof ServiceTokens];
@@ -31,6 +32,8 @@ export function clearServices(): void {
 }
 
 const ServiceContext = createContext<Map<ServiceToken, unknown>>(defaultContainer);
+
+export { ServiceContext };
 
 interface ServiceProviderProps {
   children: ReactNode;

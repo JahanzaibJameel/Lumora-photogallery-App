@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { StatusBar } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -7,12 +8,21 @@ import { ReducedMotionProvider } from './contexts/ReducedMotionContext';
 import { ThemeProvider } from './contexts/ThemeContext';
 import { useTheme } from './hooks/useTheme';
 import RootNavigator from './navigation/RootNavigator';
+import { ServiceTokens, resolveService } from './services/di';
+import { IPerformanceMonitoringService } from './services/performance.service';
 import { errorReporter } from './utils/errorReporting';
 
 errorReporter.init();
 
 function MainApp() {
   const { isDark } = useTheme();
+
+  useEffect(() => {
+    const perfService = resolveService<IPerformanceMonitoringService>(ServiceTokens.PerformanceService);
+    if (perfService) {
+      perfService.initialize();
+    }
+  }, []);
 
   return (
     <SafeAreaProvider>

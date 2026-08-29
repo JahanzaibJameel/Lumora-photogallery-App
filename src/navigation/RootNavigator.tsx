@@ -3,6 +3,7 @@ import { createStackNavigator, TransitionPresets, CardStyleInterpolators } from 
 import BlurHeader from '../components/BlurHeader';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import AlbumsScreen from '../screens/AlbumsScreen';
+import PerformanceDashboard from '../screens/PerformanceDashboard';
 import PhotoViewer from '../screens/PhotoViewer';
 import PhotosScreen from '../screens/PhotosScreen';
 import WidgetsScreen from '../screens/WidgetsScreen';
@@ -41,7 +42,7 @@ export default function RootNavigator() {
           name="Albums"
           component={AlbumsScreen}
           options={{
-            header: () => <BlurHeader title="Albums" showSearch showWidgets />,
+            header: () => <BlurHeader title="Albums" showSearch showWidgets showPerformance />,
           }}
         />
         <Stack.Screen
@@ -65,6 +66,13 @@ export default function RootNavigator() {
           component={WidgetsScreen}
           options={{
             header: () => <BlurHeader title="Widgets" showBack />,
+          }}
+        />
+        <Stack.Screen
+          name="PerformanceDashboard"
+          component={PerformanceDashboard}
+          options={{
+            headerShown: false,
           }}
         />
       </Stack.Navigator>

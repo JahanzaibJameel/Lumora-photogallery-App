@@ -56,6 +56,66 @@ export const makeMockStorageService = (): MockStorageService => ({
   contains: jest.fn(),
 });
 
+export interface MockPerformanceMonitoringService {
+  initialize: jest.Mock;
+  getConfig: jest.Mock;
+  updateConfig: jest.Mock;
+  startTimer: jest.Mock;
+  stopTimer: jest.Mock;
+  recordMetric: jest.Mock;
+  recordNavigation: jest.Mock;
+  recordApiCall: jest.Mock;
+  recordImageLoad: jest.Mock;
+  recordListRender: jest.Mock;
+  recordMemory: jest.Mock;
+  recordCacheHitRate: jest.Mock;
+  getStats: jest.Mock;
+  getAggregatedMetrics: jest.Mock;
+  getRecentMetrics: jest.Mock;
+  flushToStorage: jest.Mock;
+  clearMetrics: jest.Mock;
+  startSession: jest.Mock;
+  endSession: jest.Mock;
+  getMemorySnapshot: jest.Mock;
+  destroy: jest.Mock;
+}
+
+export const makeMockPerformanceMonitoringService = (): MockPerformanceMonitoringService => ({
+  initialize: jest.fn().mockResolvedValue(undefined),
+  getConfig: jest.fn().mockReturnValue({
+    enabled: true,
+    sampleRate: 1.0,
+    maxStoredMetrics: 10000,
+    aggregationIntervalMs: 300000,
+    flushIntervalMs: 30000,
+    trackMemory: true,
+    trackImages: true,
+    trackApiCalls: true,
+    trackNavigation: true,
+    trackListRenders: true,
+    trackCacheHitRates: true,
+  }),
+  updateConfig: jest.fn(),
+  startTimer: jest.fn().mockReturnValue('timer-id'),
+  stopTimer: jest.fn().mockReturnValue(100),
+  recordMetric: jest.fn(),
+  recordNavigation: jest.fn(),
+  recordApiCall: jest.fn(),
+  recordImageLoad: jest.fn(),
+  recordListRender: jest.fn(),
+  recordMemory: jest.fn(),
+  recordCacheHitRate: jest.fn(),
+  getStats: jest.fn().mockReturnValue(null),
+  getAggregatedMetrics: jest.fn().mockReturnValue(null),
+  getRecentMetrics: jest.fn().mockReturnValue([]),
+  flushToStorage: jest.fn().mockResolvedValue(undefined),
+  clearMetrics: jest.fn().mockResolvedValue(undefined),
+  startSession: jest.fn().mockReturnValue('session-id'),
+  endSession: jest.fn(),
+  getMemorySnapshot: jest.fn().mockReturnValue(null),
+  destroy: jest.fn(),
+});
+
 export const mockMediaServiceDefaults = (mock: MockMediaService): void => {
   mock.getAlbums.mockResolvedValue([]);
   mock.getPhotosFromAlbum.mockResolvedValue({ photos: [], endCursor: null, hasNextPage: false });

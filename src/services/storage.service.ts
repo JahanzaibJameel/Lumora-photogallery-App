@@ -1,5 +1,6 @@
 import { MMKV } from 'react-native-mmkv';
 import { ServiceTokens, registerService, resolveService } from './di';
+import { PerformanceMonitoringService } from './performance.service';
 
 // Keys only for data that is actually read or written somewhere in the app.
 export const StorageKeys = {
@@ -9,6 +10,9 @@ export const StorageKeys = {
   WIDGET_CONFIGS: 'lumora_widget_configs',
   SEARCH_HISTORY: 'lumora_search_history',
   REDUCED_MOTION: 'lumora_reduced_motion',
+  PERFORMANCE_CONFIG: 'lumora_performance_config',
+  PERFORMANCE_METRICS: 'lumora_performance_metrics',
+  PERFORMANCE_AGGREGATED: 'lumora_performance_aggregated',
 } as const;
 
 export interface IStorageService {
@@ -56,6 +60,9 @@ class StorageService implements IStorageService {
 const storageService = new StorageService();
 
 registerService(ServiceTokens.StorageService, storageService);
+
+const performanceService = PerformanceMonitoringService.getInstance(storageService);
+registerService(ServiceTokens.PerformanceService, performanceService);
 
 export { storageService };
 

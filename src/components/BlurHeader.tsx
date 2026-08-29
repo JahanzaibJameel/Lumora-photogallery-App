@@ -25,6 +25,7 @@ interface BlurHeaderProps {
   showBack?: boolean;
   showSearch?: boolean;
   showWidgets?: boolean;
+  showPerformance?: boolean;
   onSearchChange?: (text: string) => void;
   scrollY?: SharedValue<number>;
 }
@@ -35,6 +36,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
     showBack = false,
     showSearch = false,
     showWidgets = false,
+    showPerformance = false,
     onSearchChange,
     scrollY,
   }) => {
@@ -71,6 +73,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
 
     const handleBack = () => navigation.goBack();
     const handleWidgets = () => navigation.navigate('Widgets');
+    const handlePerformance = () => navigation.navigate('PerformanceDashboard');
     const toggleSearch = () => {
       setSearchVisible((v) => !v);
       if (searchVisible) {
@@ -142,6 +145,16 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
                     accessibilityLabel="Open widgets"
                     accessibilityHint="Opens the widgets configuration screen"
                     onPress={handleWidgets}
+                  />
+                )}
+
+                {showPerformance && (
+                  <IconButton
+                    name="speedometer-outline"
+                    size={22}
+                    accessibilityLabel="Open performance dashboard"
+                    accessibilityHint="Opens the performance monitoring dashboard"
+                    onPress={handlePerformance}
                   />
                 )}
               </View>

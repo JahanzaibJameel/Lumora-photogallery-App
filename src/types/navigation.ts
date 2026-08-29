@@ -3,5 +3,6 @@ export type RootStackParamList = {
   Photos: { albumId: string; albumTitle: string };
   PhotoViewer: { photoId: string; albumId: string; initialIndex: number };
   Widgets: undefined;
+  PerformanceDashboard: undefined;
 };
 

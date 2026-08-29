@@ -40,6 +40,22 @@ export const makeMockWidgetService = (): MockWidgetService => ({
   clearCache: jest.fn(),
 });
 
+export interface MockStorageService {
+  save: jest.Mock;
+  get: jest.Mock;
+  delete: jest.Mock;
+  clear: jest.Mock;
+  contains: jest.Mock;
+}
+
+export const makeMockStorageService = (): MockStorageService => ({
+  save: jest.fn(),
+  get: jest.fn(),
+  delete: jest.fn(),
+  clear: jest.fn(),
+  contains: jest.fn(),
+});
+
 export const mockMediaServiceDefaults = (mock: MockMediaService): void => {
   mock.getAlbums.mockResolvedValue([]);
   mock.getPhotosFromAlbum.mockResolvedValue({ photos: [], endCursor: null, hasNextPage: false });
@@ -83,4 +99,12 @@ export const mockWidgetServiceDefaults = (mock: MockWidgetService): void => {
   });
   mock.saveWidgetData.mockResolvedValue(undefined);
   mock.clearCache.mockResolvedValue(undefined);
+};
+
+export const mockStorageServiceDefaults = (mock: MockStorageService): void => {
+  mock.get.mockReturnValue(null);
+  mock.contains.mockReturnValue(false);
+  mock.clear.mockImplementation(() => {});
+  mock.save.mockImplementation(() => {});
+  mock.delete.mockImplementation(() => {});
 };

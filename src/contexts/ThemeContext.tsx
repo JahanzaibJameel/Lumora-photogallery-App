@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { useColorScheme } from 'react-native';
-import { storageService, StorageKeys } from '../services/storage.service';
+import { getStorageService, StorageKeys } from '../services/storage.service';
 import { lightColors, darkColors } from '../theme/tokens';
 import type { ColorTokens } from '../theme/tokens';
 
@@ -21,7 +21,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const [themeMode, setThemeModeState] = useState<ThemeMode>('system');
 
   useEffect(() => {
-    const saved = storageService.get<string>(StorageKeys.THEMES);
+    const saved = getStorageService().get<string>(StorageKeys.THEMES);
     if (saved && ['light', 'dark', 'system'].includes(saved)) {
       setThemeModeState(saved as ThemeMode);
     }
@@ -36,7 +36,7 @@ export const ThemeProvider: React.FC<{ children: ReactNode }> = ({ children }) =
 
   const setThemeMode = useCallback((mode: ThemeMode) => {
     setThemeModeState(mode);
-    storageService.save(StorageKeys.THEMES, mode);
+    getStorageService().save(StorageKeys.THEMES, mode);
   }, []);
 
   const toggleTheme = useCallback(() => {

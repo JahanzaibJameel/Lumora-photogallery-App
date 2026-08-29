@@ -214,3 +214,57 @@ describe('usePhotos retry behavior', () => {
     expect(mockMediaService.getPhotosFromAlbum).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('usePhotos cancellation', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    mockGetMediaService.mockReturnValue(mockMediaService as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    mockMediaService.getPhotosFromAlbum.mockResolvedValue({
+      photos: [],
+      endCursor: null,
+      hasNextPage: false,
+    });
+  });
+
+  it('does not update state after unmount', async () => {
+    let resolvePhotos!: (value: any) => void; // eslint-disable-line @typescript-eslint/no-explicit-any
+    const pending = new Promise<any>((resolve) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      resolvePhotos = resolve;
+    });
+    mockMediaService.getPhotosFromAlbum.mockReturnValue(pending);
+
+    const { result, unmount } = renderHook(() => usePhotos('album-1'));
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      resolvePhotos({ photos: [makePhoto({ id: 'p1' })], endCursor: null, hasNextPage: false });
+      await pending;
+    });
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.photos).toEqual([]);
+  });
+
+  it('does not update error state after unmount on failure', async () => {
+    let rejectPhotos!: (error: unknown) => void;
+    const pending = new Promise<any>((_resolve, reject) => { // eslint-disable-line @typescript-eslint/no-explicit-any
+      rejectPhotos = reject;
+    });
+    mockMediaService.getPhotosFromAlbum.mockReturnValue(pending);
+
+    const { result, unmount } = renderHook(() => usePhotos('album-1'));
+    expect(result.current.loading).toBe(true);
+
+    unmount();
+
+    await act(async () => {
+      rejectPhotos(new Error('Late failure'));
+      try { await pending; } catch { /* expected */ }
+    });
+
+    expect(result.current.loading).toBe(true);
+    expect(result.current.error).toBeNull();
+  });
+});

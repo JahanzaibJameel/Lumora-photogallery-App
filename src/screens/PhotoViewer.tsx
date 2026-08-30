@@ -3,7 +3,7 @@ import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Image } from 'expo-image';
 import { useCallback, useEffect, useState } from 'react';
-import { BackHandler, Dimensions, StatusBar, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, BackHandler, Dimensions, StatusBar, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   withSpring,
@@ -17,8 +17,6 @@ import { RootStackParamList } from '../types/navigation';
 import { usePhotoGestures } from './PhotoViewer/PhotoViewerGestures';
 import { BackButton, NavArrow, PhotoInfoBadge } from './PhotoViewer/PhotoViewerOverlay';
 
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
-
 const AnimatedExpoImage = Animated.createAnimatedComponent(Image);
 
 type PhotoViewerRouteProp = RouteProp<RootStackParamList, 'PhotoViewer'>;
@@ -27,8 +25,8 @@ const PhotoViewer = () => {
   const route = useRoute<PhotoViewerRouteProp>();
   const navigation = useNavigation();
   const { albumId, initialIndex = 0 } = route.params;
-  const { photos } = usePhotos(albumId);
   const reduceMotion = useReducedMotion();
+  const { photos, loadMore } = usePhotos(albumId);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const currentIndexRef = useSharedValue(initialIndex);
   const goToIndex = useCallback((index: number) => {
@@ -88,6 +86,13 @@ const PhotoViewer = () => {
     return () => backHandler.remove();
   }, [handleBack]);
 
+  // Load more photos when approaching the end of the list
+  useEffect(() => {
+    if (currentIndex >= photos.length - 5) {
+      loadMore();
+    }
+  }, [currentIndex, photos.length, loadMore]);
+
   // Warm the image cache for both neighbours so a swipe resolves from memory
   // instead of waiting on a decode round-trip mid-gesture.
   useEffect(() => {
@@ -101,12 +106,13 @@ const PhotoViewer = () => {
   if (photos.length === 0) {
     return (
       <View style={styles.emptyContainer}>
-        <Ionicons name="image" size={64} color="white" />
+        <ActivityIndicator size="large" color="white" />
       </View>
     );
   }
 
   const currentPhoto = photos[currentIndex] || photos[0];
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
   const imageRatio = currentPhoto.width / currentPhoto.height;
   const screenRatio = SCREEN_WIDTH / SCREEN_HEIGHT;
   const imageHeight = imageRatio > screenRatio

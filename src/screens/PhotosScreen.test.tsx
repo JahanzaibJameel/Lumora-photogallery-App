@@ -6,7 +6,7 @@ import { useGridSize } from '../contexts/GridSizeContext';
 import { usePhotos } from '../hooks/usePhotos';
 import { useDebouncedValue, useSearchHistory } from '../hooks/useSearch';
 import { useTheme } from '../hooks/useTheme';
-import { Photo } from '../types';
+import { makePhoto } from '../test-utils';
 import { RootStackParamList } from '../types/navigation';
 import PhotosScreen from './PhotosScreen';
 
@@ -32,19 +32,6 @@ const mockTheme = {
   },
   isDark: false,
 };
-
-const makePhoto = (overrides: Partial<Photo> = {}): Photo => ({
-  id: overrides.id ?? 'p1',
-  uri: overrides.uri ?? 'file://p1.jpg',
-  filename: overrides.filename ?? 'p1.jpg',
-  width: overrides.width ?? 800,
-  height: overrides.height ?? 600,
-  size: overrides.size ?? 1000,
-  albumId: overrides.albumId ?? 'album-1',
-  createdAt: overrides.createdAt ?? 1000,
-  modifiedAt: overrides.modifiedAt ?? 2000,
-  ...overrides,
-});
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -152,5 +139,89 @@ describe('PhotosScreen', () => {
     const { UNSAFE_getAllByType } = renderScreen(<PhotosScreen />);
     const views = UNSAFE_getAllByType(require('react-native').View);
     expect(views.length).toBeGreaterThan(0);
+  });
+
+  it('calls refreshPhotos when refresh FAB is pressed', () => {
+    const mockRefreshPhotos = jest.fn();
+    const photos = [makePhoto({ id: 'p1' })];
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      loadMore: jest.fn(),
+      refreshPhotos: mockRefreshPhotos,
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+
+    const { getByLabelText } = renderScreen(<PhotosScreen />);
+    fireEvent.press(getByLabelText('Refresh photos'));
+    expect(mockRefreshPhotos).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls cycleGridSize when grid toggle is pressed', () => {
+    const mockCycleGridSize = jest.fn();
+    mockedUseGridSize.mockReturnValue({ gridSize: 'medium', setGridSize: jest.fn(), cycleGridSize: mockCycleGridSize } as any);
+    const photos = [makePhoto({ id: 'p1' })];
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+
+    const { getByLabelText } = renderScreen(<PhotosScreen />);
+    fireEvent.press(getByLabelText('Change grid size'));
+    expect(mockCycleGridSize).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls deletePhoto when photo is long-pressed and delete is confirmed', () => {
+    const mockDeletePhoto = jest.fn().mockResolvedValue(undefined);
+    const photos = [makePhoto({ id: 'p1', filename: 'photo1.jpg' })];
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: mockDeletePhoto,
+    } as any);
+
+    const { getByLabelText, getByText } = renderScreen(<PhotosScreen />);
+    fireEvent(getByLabelText('Photo photo1.jpg'), 'longPress');
+    fireEvent.press(getByText('Delete'));
+    expect(mockDeletePhoto).toHaveBeenCalledWith('p1');
+  });
+
+  it('filters photos when search query matches filename', async () => {
+    const photos = [
+      makePhoto({ id: 'p1', filename: 'vacation.jpg' }),
+      makePhoto({ id: 'p2', filename: 'work.jpg' }),
+    ];
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+    mockedUseDebouncedValue.mockImplementation((val: unknown) => val as string);
+
+    const { getByLabelText, queryByLabelText } = renderScreen(<PhotosScreen />);
+    fireEvent.press(getByLabelText('Open search'));
+    fireEvent.changeText(getByLabelText('Search photos'), 'vacation');
+
+    expect(queryByLabelText('Photo vacation.jpg')).toBeTruthy();
+    expect(queryByLabelText('Photo work.jpg')).toBeNull();
   });
 });

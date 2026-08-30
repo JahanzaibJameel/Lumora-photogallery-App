@@ -4,7 +4,7 @@
 
 ## Near term
 
-- **Persist widget configuration** (which widgets are enabled) and **grid density** to MMKV so they survive relaunch.
+- ~~**Persist widget configuration** (which widgets are enabled) and **grid density** to MMKV so they survive relaunch.~~ Completed: widget config persisted via `useWidgetConfig` → `StorageKeys.WIDGET_CONFIGS`; grid density still session-only.
 - **Favorites UX** — add a favorite affordance and wire `StorageKeys.FAVORITES` writes so the favorites widget is useful.
 - **Search history UI** — surface the MMKV-backed history (currently recorded but not shown).
 - **Settings screen** — implement or remove the unused `RootStackParamList.Settings` route.

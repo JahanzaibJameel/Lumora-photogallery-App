@@ -12,8 +12,6 @@ import {
   type SharedValue,
 } from 'react-native-reanimated';
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 interface GestureHandlersProps {
   currentIndexRef: SharedValue<number>;
   photosLength: number;
@@ -27,6 +25,7 @@ export const usePhotoGestures = ({
   goToIndex,
   reduceMotion,
 }: GestureHandlersProps) => {
+  const { width: SCREEN_WIDTH } = Dimensions.get('window');
   const scale = useSharedValue(1);
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);

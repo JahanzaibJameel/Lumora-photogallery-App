@@ -1,7 +1,7 @@
 import { Photo } from '../types';
 import { errorReporter } from '../utils/errorReporting';
-import { categorizeError } from '../utils/errors';
-import { ServiceTokens, resolveService } from './di';
+import { AppError, categorizeError, ErrorCategory, ErrorSeverity } from '../utils/errors';
+import { ServiceTokens, resolveService, registerService } from './di';
 import type { IMediaService } from './media.service';
 import type { IStorageService } from './storage.service';
 import { StorageKeys } from './storage.service';
@@ -46,62 +46,86 @@ interface CachedWidgetData {
   timestamp: number;
 }
 
+export interface IWidgetService {
+  getDailyMemory(): Promise<WidgetData>;
+  getRandomPhotos(count?: number): Promise<WidgetData>;
+  getAlbumPreview(albumId: string): Promise<WidgetData>;
+  getFavorites(): Promise<WidgetData>;
+  saveWidgetData(widgetId: string, data: WidgetData): void;
+  getWidgetData(widgetId: string): WidgetData | null;
+  clearCache(prefix?: string): void;
+}
+
 const WIDGET_CACHE_TTL = 5 * 60 * 1000;
 
-const widgetCache = new Map<string, CachedWidgetData>();
+export class WidgetService implements IWidgetService {
+  private static instance: WidgetService;
+  private widgetCache: Map<string, CachedWidgetData> = new Map();
 
-function getCachedWidget(key: string): WidgetData | null {
-  const cached = widgetCache.get(key);
-  if (cached && Date.now() - cached.timestamp < WIDGET_CACHE_TTL) {
-    return cached.data;
+  private constructor() {}
+
+  static getInstance(): WidgetService {
+    if (!WidgetService.instance) {
+      WidgetService.instance = new WidgetService();
+    }
+    return WidgetService.instance;
   }
-  if (cached) {
-    widgetCache.delete(key);
+
+  private getCachedWidget(key: string): WidgetData | null {
+    const cached = this.widgetCache.get(key);
+    if (cached && Date.now() - cached.timestamp < WIDGET_CACHE_TTL) {
+      return cached.data;
+    }
+    if (cached) {
+      this.widgetCache.delete(key);
+    }
+    return null;
   }
-  return null;
-}
 
-function setCachedWidget(key: string, data: WidgetData): void {
-  widgetCache.set(key, { data, timestamp: Date.now() });
-}
-
-function invalidateCache(prefix?: string): void {
-  if (prefix) {
-    const keysToDelete: string[] = [];
-    widgetCache.forEach((_, key) => {
-      if (key.startsWith(prefix)) {
-        keysToDelete.push(key);
-      }
-    });
-    keysToDelete.forEach(key => widgetCache.delete(key));
-  } else {
-    widgetCache.clear();
+  private setCachedWidget(key: string, data: WidgetData): void {
+    this.widgetCache.set(key, { data, timestamp: Date.now() });
   }
-}
 
-export const WidgetService = {
-  /**
-   * Get daily memory - photos from this day in previous years
-   */
-  async getDailyMemory(): Promise<WidgetData> {
-    const cacheKey = 'daily_memory';
-    const cached = getCachedWidget(cacheKey);
-    if (cached) return cached;
+  private invalidateCache(prefix?: string): void {
+    if (prefix) {
+      const keysToDelete: string[] = [];
+      this.widgetCache.forEach((_, key) => {
+        if (key.startsWith(prefix)) {
+          keysToDelete.push(key);
+        }
+      });
+      keysToDelete.forEach(key => this.widgetCache.delete(key));
+    } else {
+      this.widgetCache.clear();
+    }
+  }
 
-    const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
-    const today = new Date();
-    const currentMonth = today.getMonth();
-    const currentDay = today.getDate();
+/**
+ * Get daily memory - photos from this day in previous years
+ *
+ * Note: scans up to 10 albums with 30 photos each to balance
+ * coverage vs performance. This may miss memories in large libraries
+ * with many albums.
+ */
+async getDailyMemory(): Promise<WidgetData> {
+  const cacheKey = 'daily_memory';
+  const cached = this.getCachedWidget(cacheKey);
+  if (cached) return cached;
 
-    const albums = await mediaService.getAlbums(0, 100);
+  const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
+  const today = new Date();
+  const currentMonth = today.getMonth();
+  const currentDay = today.getDate();
 
-    const results = await Promise.all(
-      albums.slice(0, 5).map(album =>
-        mediaService
-          .getPhotosFromAlbum(album.id, undefined, 50)
-          .catch(error => reportAlbumScanFailure(error, 'daily_memory'))
-      )
-    );
+  const albums = await mediaService.getAlbums(0, 10);
+
+  const results = await Promise.all(
+    albums.map(album =>
+      mediaService
+        .getPhotosFromAlbum(album.id, undefined, 30)
+        .catch(error => reportAlbumScanFailure(error, 'daily_memory'))
+    )
+  );
 
     const memories: Photo[] = results.flatMap(result => result.photos);
 
@@ -137,25 +161,28 @@ export const WidgetService = {
       updatedAt: Date.now(),
     };
 
-    setCachedWidget(cacheKey, widgetData);
+    this.setCachedWidget(cacheKey, widgetData);
     this.saveWidgetData('daily_memory', widgetData);
 
     return widgetData;
-  },
+  }
 
   /**
    * Get random photos for the in-app widget dashboard.
+   *
+   * Note: scans up to 10 albums with 20 photos each to balance
+   * variety vs performance. Large libraries may have unrepresented photos.
    */
   async getRandomPhotos(count: number = 1): Promise<WidgetData> {
     const cacheKey = `random_photo_${count}`;
-    const cached = getCachedWidget(cacheKey);
+    const cached = this.getCachedWidget(cacheKey);
     if (cached) return cached;
 
     const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
-    const albums = await mediaService.getAlbums(0, 20);
+    const albums = await mediaService.getAlbums(0, 10);
 
     const results = await Promise.all(
-      albums.slice(0, 3).map(album =>
+      albums.map(album =>
         mediaService
           .getPhotosFromAlbum(album.id, undefined, 20)
           .catch(error => reportAlbumScanFailure(error, 'random_photo'))
@@ -186,25 +213,31 @@ export const WidgetService = {
       updatedAt: Date.now(),
     };
 
-    setCachedWidget(cacheKey, widgetData);
+    this.setCachedWidget(cacheKey, widgetData);
     this.saveWidgetData('random_photo', widgetData);
 
     return widgetData;
-  },
+  }
 
   /**
    * Get album preview for widget
    */
   async getAlbumPreview(albumId: string): Promise<WidgetData> {
     const cacheKey = `album_${albumId}`;
-    const cached = getCachedWidget(cacheKey);
+    const cached = this.getCachedWidget(cacheKey);
     if (cached) return cached;
 
     const mediaService = resolveService<IMediaService>(ServiceTokens.MediaService);
     const album = await mediaService.getAlbumById(albumId);
 
     if (!album) {
-      throw new Error('Album not found');
+      throw new AppError({
+        message: 'Album not found',
+        category: ErrorCategory.DATA,
+        severity: ErrorSeverity.MEDIUM,
+        code: 'ALBUM_NOT_FOUND',
+        context: { albumId },
+      });
     }
 
     const { photos } = await mediaService.getPhotosFromAlbum(albumId, undefined, 4);
@@ -221,18 +254,18 @@ export const WidgetService = {
       updatedAt: Date.now(),
     };
 
-    setCachedWidget(cacheKey, widgetData);
+    this.setCachedWidget(cacheKey, widgetData);
     this.saveWidgetData(cacheKey, widgetData);
 
     return widgetData;
-  },
+  }
 
   /**
    * Get favorite photos for widget
    */
   async getFavorites(): Promise<WidgetData> {
     const cacheKey = 'favorites';
-    const cached = getCachedWidget(cacheKey);
+    const cached = this.getCachedWidget(cacheKey);
     if (cached) return cached;
 
     const storage = resolveService<IStorageService>(ServiceTokens.StorageService);
@@ -255,29 +288,35 @@ export const WidgetService = {
       updatedAt: Date.now(),
     };
 
-    setCachedWidget(cacheKey, widgetData);
+    this.setCachedWidget(cacheKey, widgetData);
     this.saveWidgetData('favorites', widgetData);
 
     return widgetData;
-  },
+  }
 
   /**
    * Save widget data to storage (synchronous MMKV write).
    */
   saveWidgetData(widgetId: string, data: WidgetData): void {
     resolveService<IStorageService>(ServiceTokens.StorageService).save(`${StorageKeys.WIDGET_PREFIX}${widgetId}`, data);
-  },
+  }
 
   getWidgetData(widgetId: string): WidgetData | null {
     return resolveService<IStorageService>(ServiceTokens.StorageService).get<WidgetData>(`${StorageKeys.WIDGET_PREFIX}${widgetId}`);
-  },
+  }
 
   /**
    * Invalidate cached widget data so the next call refetches from media library
    */
   clearCache(prefix?: string): void {
-    invalidateCache(prefix);
-  },
-};
+    this.invalidateCache(prefix);
+  }
+}
 
-export default WidgetService;
+const widgetService = WidgetService.getInstance();
+
+registerService(ServiceTokens.WidgetService, widgetService);
+
+export const getWidgetService = (): IWidgetService => resolveService<IWidgetService>(ServiceTokens.WidgetService);
+
+export default widgetService;

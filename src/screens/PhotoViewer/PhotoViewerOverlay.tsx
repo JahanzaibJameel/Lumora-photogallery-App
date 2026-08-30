@@ -60,7 +60,7 @@ export const NavArrow = ({ onPress, backOpacity, direction, visible }: NavArrowP
         onPress={onPress}
         style={[styles.button, { backgroundColor: colors.overlay }]}
         hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-        accessibilityRole="adjustable"
+        accessibilityRole="button"
         accessibilityLabel={direction === 'left' ? 'Previous photo' : 'Next photo'}
         accessibilityHint={direction === 'left' ? 'Swipes to the previous photo' : 'Swipes to the next photo'}
       >

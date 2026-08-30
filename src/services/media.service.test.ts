@@ -61,9 +61,17 @@ describe('MediaService', () => {
     });
 
     it('applies offset and limit', async () => {
-      mockMediaLibrary.getAlbumsAsync.mockResolvedValue([]);
-      await service.getAlbums(10, 20);
-      expect(true).toBe(true);
+      const rawAlbums = [
+        mockMediaLibraryAlbum({ id: 'a1', title: 'Album 1', assetCount: 5 }),
+        mockMediaLibraryAlbum({ id: 'a2', title: 'Album 2', assetCount: 3 }),
+        mockMediaLibraryAlbum({ id: 'a3', title: 'Album 3', assetCount: 2 }),
+      ];
+      mockMediaLibrary.getAlbumsAsync.mockResolvedValue(rawAlbums);
+
+      const result = await service.getAlbums(1, 2);
+      expect(result).toHaveLength(2);
+      expect(result[0].id).toBe('a2');
+      expect(result[1].id).toBe('a3');
     });
 
     it('uses "Untitled Album" when title is falsy', async () => {
@@ -93,7 +101,7 @@ describe('MediaService', () => {
       mockMediaLibrary.getAssetsAsync.mockResolvedValue({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
 
       await service.getAlbums(0, 20);
-      const cached = (service as any).albumsCache.get('a1'); // eslint-disable-line @typescript-eslint/no-explicit-any
+      const cached = service.__test__().albumsCache.get('a1'); // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(cached?.value?.title).toBe('Cached');
     });
 
@@ -263,7 +271,7 @@ describe('MediaService', () => {
   describe('getAlbumById', () => {
     it('returns cached album if available', async () => {
       const cached: Album = mockAlbumResult({ id: 'a1', title: 'Cached Album' });
-      (service as any).albumsCache.set('a1', { value: cached, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().albumsCache.set('a1', { value: cached, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
       const result = await service.getAlbumById('a1');
       expect(result).toBe(cached);
       expect(mockMediaLibrary.getAlbumsAsync).not.toHaveBeenCalled();
@@ -299,7 +307,7 @@ describe('MediaService', () => {
       mockMediaLibrary.getAssetsAsync.mockResolvedValue({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
 
       await service.getAlbumById('a1');
-      expect((service as any).albumsCache.has('a1')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().albumsCache.has('a1')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
   });
 
@@ -307,42 +315,42 @@ describe('MediaService', () => {
     it('deletes photo and invalidates only pages containing it', async () => {
       const album = mockAlbumResult({ id: 'a1', count: 5 });
       const otherAlbum = mockAlbumResult({ id: 'a2', count: 7 });
-      (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).albumsCache.set('a2', { value: otherAlbum, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
-        'a1_start_30',
+      service.__test__().albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().albumsCache.set('a2', { value: otherAlbum, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1||start||30',
         { value: { photos: [makePhoto({ id: 'p1', albumId: 'a1' })], endCursor: '', hasNextPage: true }, timestamp: Date.now() }
       );
-      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
-        'a1_next_30',
+      service.__test__().photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1||next||30',
         { value: { photos: [makePhoto({ id: 'p9', albumId: 'a1' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
       );
-      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
-        'a2_start_30',
+      service.__test__().photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a2||start||30',
         { value: { photos: [makePhoto({ id: 'p2', albumId: 'a2' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
       );
 
       await service.deletePhoto('p1');
       expect(mockMediaLibrary.deleteAssetsAsync).toHaveBeenCalledWith(['p1']);
-      expect((service as any).photosCache.has('a1_start_30')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).photosCache.has('a1_next_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).photosCache.has('a2_start_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).albumsCache.get('a1').value.count).toBe(4); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).albumsCache.get('a2').value.count).toBe(7); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().photosCache.has('a1||start||30')).toBe(false);
+      expect(service.__test__().photosCache.has('a1||next||30')).toBe(true);
+      expect(service.__test__().photosCache.has('a2||start||30')).toBe(true);
+      expect(service.__test__().albumsCache.get('a1')?.value?.count).toBe(4);
+      expect(service.__test__().albumsCache.get('a2')?.value?.count).toBe(7);
     });
 
     it('leaves caches untouched when no cached page contains the photo', async () => {
       const album = mockAlbumResult({ id: 'a1', count: 5 });
-      (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
-        'a1_start_30',
+      service.__test__().albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1||start||30',
         { value: { photos: [makePhoto({ id: 'p9', albumId: 'a1' })], endCursor: '', hasNextPage: true }, timestamp: Date.now() }
       );
 
       await service.deletePhoto('unknown-id');
       expect(mockMediaLibrary.deleteAssetsAsync).toHaveBeenCalledWith(['unknown-id']);
-      expect((service as any).albumsCache.get('a1').value.count).toBe(5); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).photosCache.has('a1_start_30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().albumsCache.get('a1')?.value?.count).toBe(5);
+      expect(service.__test__().photosCache.has('a1||start||30')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
 
     it('throws on error', async () => {
@@ -353,17 +361,17 @@ describe('MediaService', () => {
     it('drops affected albums from the thumbnail cache', async () => {
       mockMediaLibrary.deleteAssetsAsync.mockResolvedValue(true);
       const album = mockAlbumResult({ id: 'a1', count: 5 });
-      (service as any).albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
-        'a1_start_30',
+      service.__test__().albumsCache.set('a1', { value: album, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().photosCache.set( // eslint-disable-line @typescript-eslint/no-explicit-any
+        'a1||start||30',
         { value: { photos: [makePhoto({ id: 'p1', albumId: 'a1' })], endCursor: '', hasNextPage: false }, timestamp: Date.now() }
       );
-      (service as any).thumbnailsCache.set('a1', { value: 'file://cover.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).thumbnailsCache.set('a2', { value: 'file://other.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().thumbnailsCache.set('a1', { value: 'file://cover.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().thumbnailsCache.set('a2', { value: 'file://other.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       await service.deletePhoto('p1');
-      expect((service as any).thumbnailsCache.has('a1')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).thumbnailsCache.has('a2')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().thumbnailsCache.has('a1')).toBe(false); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().thumbnailsCache.has('a2')).toBe(true); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
   });
 
@@ -400,18 +408,18 @@ describe('MediaService', () => {
     it('evicts the oldest pages beyond the cache limit', async () => {
       const old = Date.now() - 10_000;
       for (let i = 0; i < 499; i++) {
-        (service as any).photosCache.set(`a_${i}_start_30`, { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+        service.__test__().photosCache.set(`a_${i}||start||30`, { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
       }
       // Oldest entry sits mid-map so eviction must find it, not just drop head.
-      (service as any).photosCache.set('a_old_start_30', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: old }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().photosCache.set('a_old||start||30', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: old }); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       mockMediaLibrary.getAssetsAsync.mockResolvedValue({ assets: [], endCursor: '', hasNextPage: false, totalCount: 0 });
       await service.getPhotosFromAlbum('a_new', undefined, 30);
 
-      const cache = (service as any).photosCache as Map<string, unknown>; // eslint-disable-line @typescript-eslint/no-explicit-any
+      const cache = service.__test__().photosCache as Map<string, unknown>; // eslint-disable-line @typescript-eslint/no-explicit-any
       expect(cache.size).toBeLessThanOrEqual(500);
-      expect(cache.has('a_old_start_30')).toBe(false);
-      expect(cache.has('a_new_start_30')).toBe(true);
+      expect(cache.has('a_old||start||30')).toBe(false);
+      expect(cache.has('a_new||start||30')).toBe(true);
     });
   });
 
@@ -424,7 +432,7 @@ describe('MediaService', () => {
 
       // Age every entry past the albums TTL (5 minutes).
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      for (const [, entry] of (service as any).albumsCache) {
+      for (const [, entry] of service.__test__().albumsCache) {
         entry.timestamp = Date.now() - 6 * 60 * 1000;
       }
 
@@ -438,8 +446,8 @@ describe('MediaService', () => {
       await service.getPhotosFromAlbum('a1', undefined, 30);
       expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(1);
 
-      const page = (service as any).photosCache.get('a1_start_30'); // eslint-disable-line @typescript-eslint/no-explicit-any
-      page.timestamp = Date.now() - 3 * 60 * 1000;
+      const page = service.__test__().photosCache.get('a1||start||30'); // eslint-disable-line @typescript-eslint/no-explicit-any
+      page!.timestamp = Date.now() - 3 * 60 * 1000;
 
       await service.getPhotosFromAlbum('a1', undefined, 30);
       expect(mockMediaLibrary.getAssetsAsync).toHaveBeenCalledTimes(2);
@@ -518,14 +526,14 @@ describe('MediaService', () => {
 
   describe('clearCache', () => {
     it('clears all caches', async () => {
-      (service as any).albumsCache.set('a1', { value: mockAlbumResult({ id: 'a1' }), timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).photosCache.set('k1', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
-      (service as any).thumbnailsCache.set('a1', { value: 'file://thumb.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().albumsCache.set('a1', { value: mockAlbumResult({ id: 'a1' }), timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().photosCache.set('k1', { value: { photos: [], endCursor: '', hasNextPage: false }, timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
+      service.__test__().thumbnailsCache.set('a1', { value: 'file://thumb.jpg', timestamp: Date.now() }); // eslint-disable-line @typescript-eslint/no-explicit-any
 
       service.clearCache();
-      expect((service as any).albumsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).photosCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
-      expect((service as any).thumbnailsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().albumsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().photosCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
+      expect(service.__test__().thumbnailsCache.size).toBe(0); // eslint-disable-line @typescript-eslint/no-explicit-any
     });
   });
 });

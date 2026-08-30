@@ -1,7 +1,7 @@
 import { fireEvent } from '@testing-library/react-native';
 import React from 'react';
 import { renderWithProviders } from '../test-utils';
-import { Photo } from '../types';
+import { makePhoto } from '../test-utils';
 import PhotoGridItem from './PhotoGridItem';
 
 jest.mock('expo-image', () => {
@@ -10,19 +10,6 @@ jest.mock('expo-image', () => {
   const Image = (props: Record<string, unknown>) =>
     React.createElement(View, { ...props, testID: 'expo-image' });
   return { Image };
-});
-
-const makePhoto = (overrides: Partial<Photo> = {}): Photo => ({
-  id: overrides.id ?? 'p1',
-  uri: overrides.uri ?? 'file://p1.jpg',
-  filename: overrides.filename ?? 'p1.jpg',
-  width: overrides.width ?? 800,
-  height: overrides.height ?? 600,
-  size: overrides.size ?? 1000,
-  albumId: overrides.albumId ?? 'album-1',
-  createdAt: overrides.createdAt ?? 1000,
-  modifiedAt: overrides.modifiedAt ?? 2000,
-  ...overrides,
 });
 
 describe('PhotoGridItem', () => {

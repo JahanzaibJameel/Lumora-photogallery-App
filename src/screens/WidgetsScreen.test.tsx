@@ -5,6 +5,7 @@ import React from 'react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { useTheme } from '../hooks/useTheme';
 import { useWidgets } from '../hooks/useWidgets';
+import { makeWidgetConfig, makeWidgetData } from '../test-utils';
 import { RootStackParamList } from '../types/navigation';
 import WidgetsScreen from './WidgetsScreen';
 
@@ -15,9 +16,6 @@ jest.mock('../hooks/useReducedMotion');
 const mockedUseWidgets = useWidgets as jest.MockedFunction<typeof useWidgets>;
 const mockedUseTheme = useTheme as jest.MockedFunction<typeof useTheme>;
 const mockedUseReducedMotion = useReducedMotion as jest.MockedFunction<typeof useReducedMotion>;
-
-type WidgetConfig = import('../services/widget.service').WidgetConfig;
-type WidgetData = import('../services/widget.service').WidgetData;
 
 const mockTheme = {
   colors: {
@@ -30,23 +28,6 @@ const mockTheme = {
   },
   isDark: false,
 };
-
-const makeWidget = (overrides: Partial<WidgetConfig> = {}): WidgetConfig => ({
-  id: overrides.id ?? 'daily_memory',
-  type: overrides.type ?? 'daily_memory',
-  size: overrides.size ?? 'medium',
-  albumId: overrides.albumId,
-  title: overrides.title ?? 'Daily Memory',
-  enabled: overrides.enabled ?? true,
-});
-
-const makeWidgetData = (overrides: Partial<WidgetData> = {}): WidgetData => ({
-  type: overrides.type ?? 'daily_memory',
-  photos: overrides.photos ?? [],
-  title: overrides.title ?? 'Test Widget',
-  subtitle: overrides.subtitle ?? 'subtitle',
-  updatedAt: overrides.updatedAt ?? Date.now(),
-});
 
 const Stack = createStackNavigator<RootStackParamList>();
 
@@ -84,7 +65,7 @@ describe('WidgetsScreen', () => {
   });
 
   it('renders widget list', async () => {
-    const widgets = [makeWidget({ id: 'daily_memory', title: 'Daily Memory' })];
+    const widgets = [makeWidgetConfig({ id: 'daily_memory', title: 'Daily Memory' })];
     mockedUseWidgets.mockReturnValue({
       widgets,
       widgetData: {
@@ -106,7 +87,7 @@ describe('WidgetsScreen', () => {
 
   it('toggles widget enabled state', async () => {
     const toggleWidget = jest.fn();
-    const widgets = [makeWidget({ id: 'daily_memory', enabled: true })];
+    const widgets = [makeWidgetConfig({ id: 'daily_memory', enabled: true, title: 'Daily Memory' })];
     mockedUseWidgets.mockReturnValue({
       widgets,
       widgetData: {},
@@ -126,7 +107,7 @@ describe('WidgetsScreen', () => {
   });
 
   it('shows widget preview when enabled and has data', async () => {
-    const widgets = [makeWidget({ id: 'daily_memory', enabled: true })];
+    const widgets = [makeWidgetConfig({ id: 'daily_memory', enabled: true })];
     mockedUseWidgets.mockReturnValue({
       widgets,
       widgetData: {
@@ -148,7 +129,7 @@ describe('WidgetsScreen', () => {
   it('refreshes all widgets on button press', async () => {
     const refreshAllWidgets = jest.fn();
     mockedUseWidgets.mockReturnValue({
-      widgets: [makeWidget()],
+      widgets: [makeWidgetConfig()],
       widgetData: {},
       loading: false,
       refreshWidget: jest.fn(),

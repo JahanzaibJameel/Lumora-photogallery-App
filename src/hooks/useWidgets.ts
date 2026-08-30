@@ -1,4 +1,5 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
+import { AppState, AppStateStatus } from 'react-native';
 import { useWidgetConfig } from './useWidgetConfig';
 import { useWidgetData } from './useWidgetData';
 
@@ -9,10 +10,13 @@ const REFRESH_INTERVAL = 60 * 60 * 1000;
 export const useWidgets = () => {
   const { widgets, loading: configLoading, toggleWidget, updateWidgetConfig, addWidget, removeWidget } = useWidgetConfig();
   const { widgetData, loading: dataLoading, refreshWidget, refreshAllWidgets } = useWidgetData();
+  const appState = useRef(AppState.currentState);
+  const widgetsRef = useRef(widgets);
+  widgetsRef.current = widgets;
 
   const refreshAll = useCallback(async () => {
-    await refreshAllWidgets(widgets);
-  }, [refreshAllWidgets, widgets]);
+    await refreshAllWidgets(widgetsRef.current);
+  }, [refreshAllWidgets]);
 
   useEffect(() => {
     if (widgets.length === 0) return;
@@ -20,11 +24,24 @@ export const useWidgets = () => {
     refreshAll();
 
     const interval = setInterval(() => {
-      refreshAll();
+      if (appState.current === 'active') {
+        refreshAll().catch(() => {
+          // Suppress unhandled rejection; widget refresh failures are non-critical
+        });
+      }
     }, REFRESH_INTERVAL);
 
-    return () => clearInterval(interval);
-  }, [widgets, refreshAll]);
+    const handleAppStateChange = (nextAppState: AppStateStatus) => {
+      appState.current = nextAppState;
+    };
+
+    const subscription = AppState.addEventListener('change', handleAppStateChange);
+
+    return () => {
+      clearInterval(interval);
+      subscription.remove();
+    };
+  }, [widgets.length, refreshAll]);
 
   const refreshSingle = useCallback(async (widgetId: string) => {
     const widget = widgets.find(w => w.id === widgetId);

@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo, ReactNode } from 'react';
 import { ReduceMotion, ReducedMotionConfig, useReducedMotion as useReanimatedReducedMotion } from 'react-native-reanimated';
 import { getStorageService, StorageKeys } from '../services/storage.service';
 
@@ -43,8 +43,13 @@ export const ReducedMotionProvider: React.FC<{ children: ReactNode }> = ({ child
 
   const reanimatedMode = REANIMATED_MODE_MAP[reduceMotionMode];
 
+  const contextValue = useMemo(
+    () => ({ reduceMotion, reduceMotionMode, setReduceMotionMode }),
+    [reduceMotion, reduceMotionMode, setReduceMotionMode]
+  );
+
   return (
-    <ReducedMotionContext.Provider value={{ reduceMotion, reduceMotionMode, setReduceMotionMode }}>
+    <ReducedMotionContext.Provider value={contextValue}>
       {/* 'system' is Reanimated's default - mounting the config then would
           only trigger a dev warning about overriding the OS setting. */}
       {reduceMotionMode !== 'system' && (

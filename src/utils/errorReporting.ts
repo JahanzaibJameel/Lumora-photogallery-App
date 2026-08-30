@@ -2,12 +2,45 @@ import { AppError, ErrorCategory, ErrorSeverity } from './errors';
 
 type ErrorListener = (error: AppError) => void;
 
+const isDevelopment = process.env.NODE_ENV === 'development' || !process.env.NODE_ENV;
+
+const SENSITIVE_KEYS = ['password', 'token', 'email', 'secret', 'authorization', 'cookie', 'session'];
+
+function sanitizeContext(context: Record<string, unknown> | undefined): Record<string, unknown> | undefined {
+  if (!context) return context;
+  const sanitized: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(context)) {
+    const lowerKey = key.toLowerCase();
+    if (SENSITIVE_KEYS.some(sk => lowerKey.includes(sk))) {
+      sanitized[key] = '[REDACTED]';
+    } else {
+      sanitized[key] = value;
+    }
+  }
+  return sanitized;
+}
+
 class ErrorReporter {
   private listeners: ErrorListener[] = [];
   private sentryAvailable = false;
 
   init() {
     this.checkSentryAvailability();
+    if (this.listeners.length === 0) {
+      this.addListener(this.createDefaultListener());
+    }
+  }
+
+  private createDefaultListener(): ErrorListener {
+    return (error: AppError) => {
+      if (this.sentryAvailable) {
+        return;
+      }
+
+      if (isDevelopment) {
+        console.warn('[ErrorReporter]', error.category, error.code, error.message, sanitizeContext(error.context));
+      }
+    };
   }
 
   private checkSentryAvailability() {
@@ -40,7 +73,7 @@ class ErrorReporter {
   }
 
   capture(error: unknown, context?: Record<string, unknown>) {
-    const appError = error instanceof AppError
+    let appError = error instanceof AppError
       ? error
       : new AppError({
           message: error instanceof Error ? error.message : String(error),
@@ -52,7 +85,14 @@ class ErrorReporter {
         });
 
     if (context) {
-      appError.context = { ...appError.context, ...context };
+      appError = new AppError({
+        message: appError.message,
+        category: appError.category,
+        severity: appError.severity,
+        code: appError.code,
+        context: { ...appError.context, ...context },
+        originalError: appError.originalError,
+      });
     }
 
     for (const listener of this.listeners) {

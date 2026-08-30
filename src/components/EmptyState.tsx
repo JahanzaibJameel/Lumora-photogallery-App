@@ -33,7 +33,7 @@ const EmptyStateShell = memo(({ config }: { config: EmptyStateConfig }) => {
   return (
     <View
       style={styles.container}
-      accessibilityRole="summary"
+      accessibilityRole="text"
       accessibilityLiveRegion="polite"
     >
       <View style={styles.content}>

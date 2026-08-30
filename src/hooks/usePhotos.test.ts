@@ -8,6 +8,7 @@ const mockGetMediaService = getMediaService as jest.MockedFunction<typeof getMed
 const mockMediaService = {
   getPhotosFromAlbum: jest.fn(),
   clearCache: jest.fn(),
+  invalidateAlbum: jest.fn(),
   deletePhoto: jest.fn(),
 };
 
@@ -130,7 +131,7 @@ describe('usePhotos', () => {
 
     expect(result.current.refreshing).toBe(false);
     expect(result.current.photos[0].id).toBe('new-p1');
-    expect(mockMediaService.clearCache).toHaveBeenCalled();
+    expect(mockMediaService.invalidateAlbum).toHaveBeenCalledWith('album-1');
   });
 
   it('deletes a photo', async () => {

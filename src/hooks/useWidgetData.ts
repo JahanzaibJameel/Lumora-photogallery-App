@@ -1,10 +1,8 @@
 import { useCallback, useState } from 'react';
-import type { WidgetConfig, WidgetData } from '../services/widget.service';
-import { WidgetService } from '../services/widget.service';
+import type { WidgetConfig, WidgetData, IWidgetService } from '../services/widget.service';
+import { getWidgetService } from '../services/widget.service';
 import { errorReporter } from '../utils/errorReporting';
 import { categorizeError } from '../utils/errors';
-
-const widgetService = WidgetService;
 
 export interface UseWidgetDataReturn {
   widgetData: Record<string, WidgetData>;
@@ -21,6 +19,7 @@ export const useWidgetData = (): UseWidgetDataReturn => {
     if (!widget.enabled) return;
 
     try {
+      const widgetService: IWidgetService = getWidgetService();
       let data: WidgetData;
 
       switch (widget.type) {

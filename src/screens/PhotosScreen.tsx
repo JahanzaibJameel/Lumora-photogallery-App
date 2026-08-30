@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { FlashList } from '@shopify/flash-list';
 import { useCallback, useMemo, useState } from 'react';
 import {
@@ -32,7 +32,7 @@ import { RootStackParamList } from '../types/navigation';
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Photo>);
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Photos'>;
+type NavigationProp = StackNavigationProp<RootStackParamList, 'Photos'>;
 type PhotosRouteProp = RouteProp<RootStackParamList, 'Photos'>;
 
 const PhotosScreen = () => {
@@ -78,8 +78,7 @@ const PhotosScreen = () => {
     if (!q) return photos;
     return photos.filter(
       (p: Photo) =>
-        p.filename?.toLowerCase().includes(q) ||
-        p.albumId?.toLowerCase().includes(q)
+        p.filename?.toLowerCase().includes(q)
     );
   }, [photos, debouncedQuery]);
 
@@ -93,7 +92,6 @@ const PhotosScreen = () => {
 
   const handlePhotoPress = useCallback((photo: Photo, index: number) => {
     navigation.navigate('PhotoViewer', {
-      photoId: photo.id,
       albumId,
       initialIndex: index,
     });

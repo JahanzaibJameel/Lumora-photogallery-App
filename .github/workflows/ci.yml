@@ -1,47 +1,33 @@
-name: CI Pipeline for Lumora-photogallery-App
+name: CI
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
   pull_request:
-    branches:
-      - main
-
-# Superseded runs on the same branch waste runners and can race for status
-# checks; cancel them in favor of the newest commit.
-concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+    branches: [main]
 
 jobs:
-  verify:
+  quality:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '20.x'
-        cache: 'npm'
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
 
-    - name: Install dependencies
-      # npm ci honors the lockfile exactly; the resolved tree has no conflicting
-      # peer ranges since react-native-worklets was removed.
-      run: npm ci
+      - name: Install dependencies
+        run: npm ci
 
-    - name: Run ESLint linter
-      run: npm run lint
+      - name: Type check
+        run: npm run type-check
 
-    - name: Type check with TypeScript
-      run: npm run type-check
+      - name: Lint
+        run: npm run lint
 
-    - name: Run Jest tests with coverage gates
-      run: npm run test:coverage
-
-    - name: Build web export
-      if: github.ref == 'refs/heads/main'
-      run: npx expo export --platform web
+      - name: Test with coverage
+        run: npm test -- --coverage

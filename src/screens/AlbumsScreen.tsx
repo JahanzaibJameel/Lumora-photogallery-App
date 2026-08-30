@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { FlashList } from '@shopify/flash-list';
 import { useCallback } from 'react';
 import {
@@ -25,7 +25,7 @@ import { RootStackParamList } from '../types/navigation';
 
 const AnimatedFlashList = Animated.createAnimatedComponent(FlashList<Album>);
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Albums'>;
+type NavigationProp = StackNavigationProp<RootStackParamList, 'Albums'>;
 
 const AlbumsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
@@ -36,7 +36,6 @@ const AlbumsScreen = () => {
     loading,
     error,
     refreshing,
-    loadMore,
     refreshAlbums,
     retryLoad,
   } = useAlbums();
@@ -126,8 +125,6 @@ const AlbumsScreen = () => {
           estimatedItemSize={200}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.5}
           ListFooterComponent={renderFooter}
           ListEmptyComponent={renderEmpty}
           refreshControl={

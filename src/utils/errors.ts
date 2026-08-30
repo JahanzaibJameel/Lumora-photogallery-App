@@ -5,6 +5,7 @@ export enum ErrorCategory {
   STORAGE = 'STORAGE',
   WIDGET = 'WIDGET',
   NAVIGATION = 'NAVIGATION',
+  DATA = 'DATA',
   UNKNOWN = 'UNKNOWN',
 }
 
@@ -44,7 +45,13 @@ export class AppError extends Error {
   }
 
   isRetryable(): boolean {
-    return this.category === ErrorCategory.NETWORK || this.code === 'MEDIA_LIBRARY_TRANSIENT';
+    if (this.category === ErrorCategory.NETWORK) return true;
+    const retryableCodes = [
+      'MEDIA_LIBRARY_TRANSIENT',
+      'NETWORK_ERROR',
+      'STORAGE_ERROR',
+    ];
+    return retryableCodes.includes(this.code);
   }
 
   toJSON() {

@@ -5,7 +5,13 @@ import {
   getSearchHistory,
 } from '../services/storage.service';
 
-export const useSearchHistory = () => {
+export interface UseSearchHistoryReturn {
+  history: string[];
+  recordQuery: (query: string) => void;
+  clear: () => void;
+}
+
+export const useSearchHistory = (): UseSearchHistoryReturn => {
   const [history, setHistory] = useState<string[]>([]);
 
   useEffect(() => {

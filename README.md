@@ -36,7 +36,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tests-357%20passing-4c1?style=for-the-badge&logo=jest&logoColor=white" alt="Tests">
+  <img src="https://img.shields.io/badge/tests-409%20passing-4c1?style=for-the-badge&logo=jest&logoColor=white" alt="Tests">
   <img src="https://img.shields.io/badge/coverage-93.6%25-brightgreen?style=for-the-badge&logo=codecov&logoColor=white" alt="Coverage">
   <img src="https://img.shields.io/badge/New%20Architecture-enabled-61dafb?style=for-the-badge&logo=react&logoColor=black" alt="New Architecture">
   <img src="https://img.shields.io/badge/React%20Compiler-experimental-764ba2?style=for-the-badge&logo=react&logoColor=white" alt="React Compiler">
@@ -59,13 +59,13 @@
 
 | Feature | Status | Details |
 |:---|:---:|:---|
-| 📁 **Album browsing** | ✅ | Paginated FlashList, pull-to-refresh, skeleton states |
+| 📁 **Album browsing** | ✅ | FlashList, pull-to-refresh, skeleton states |
 | 🖼️ **Photo grid** | ✅ | Adaptive 2/3/4-column density cycling |
 | 🔍 **Full-screen viewer** | ✅ | Pinch-zoom, pan, swipe, haptics, smart prefetch |
 | 🗑️ **Photo deletion** | ✅ | Long-press → confirm → targeted cache invalidation |
 | 🌗 **Theme system** | ✅ | Light/dark/system with MMKV persistence |
 | ♿ **Reduced motion** | ✅ | System detection + manual override |
-| 🧩 **Widget dashboard** | ⚠️ | Live previews, hourly refresh; config session-only |
+| 🧩 **Widget dashboard** | ⚠️ | Live previews, hourly refresh; config persisted |
 | ⭐ **Favorites** | ⚠️ | Storage + widget exist; no marking UI yet |
 | 🔎 **Search** | ⚠️ | Debounced filename/album filter within loaded pages |
 | 🛡️ **Error taxonomy** | ✅ | Typed AppError, retry with backoff, reporting seam |
@@ -219,7 +219,7 @@ Then press `i` for iOS, `a` for Android, or `w` for web in the Expo dev menu.
 | `npm run web`           | Start in web browser                    |
 | `npm run lint`          | ESLint (flat config, 0 errors expected) |
 | `npm run type-check`    | Strict TypeScript check                 |
-| `npm test`              | Run Jest suite (39 suites / 357 tests)  |
+| `npm test`              | Run Jest suite (41 suites / 409 tests)  |
 | `npm run test:watch`    | Jest watch mode                         |
 | `npm run test:coverage` | Coverage report (70% floors enforced)   |
 | `npm run build`         | Static web export                       |
@@ -238,8 +238,8 @@ The colocated suite covers **every** hook, service, context, screen, component p
 | **Branches**    | 83.3% |
 | **Functions**   | 90.8% |
 | **Lines**       | 94.1% |
-| **Test suites** | 39    |
-| **Tests**       | 357   |
+| **Test suites** | 41    |
+| **Tests**       | 409   |
 
 Testing conventions and fixtures: [`docs/TESTING.md`](https://docs/TESTING.md)
 
@@ -269,7 +269,7 @@ const { colors, spacing, typography } = useTheme();
 | **TechniqueImplementation** |                                                         |
 | --------------------------- | ------------------------------------------------------- |
 | **Virtualized lists**       | FlashList with measured `estimatedItemSize`             |
-| **Proactive pagination**    | `onEndReachedThreshold={0.5}`                           |
+| **Cursor pagination** | Photos load in batches via `usePaginatedQuery` with `onEndReachedThreshold={0.5}` |
 | **Caching**                 | TTL + LRU (albums 5min / photos 2min / thumbs 10min)    |
 | **Request coalescing**      | In-flight deduplication in `MediaService`               |
 | **Batched queries**         | `getPhotosByIds` + `Promise.all` album scans            |
@@ -324,7 +324,7 @@ Details: [`docs/DEPLOYMENT.md`](https://docs/DEPLOYMENT.md)
 
 See [`docs/PROJECT_STATUS.md`](https://docs/PROJECT_STATUS.md) for the full list, including:
 
-* Widget and grid preferences are session-only (not persisted)
+* Widget configuration is persisted; grid density is session-only (not persisted)
 * No UI to mark photos as favorites (storage exists)
 * Search limited to filename/album-ID within loaded pages
 * English-only strings
@@ -334,10 +334,10 @@ See [`docs/PROJECT_STATUS.md`](https://docs/PROJECT_STATUS.md) for the full list
 
 ## 🗺️ Roadmap
 
-* □
+ * □
 
-  Persist widget configuration and grid density
-* □
+   Persist grid density
+ * □
 
   Favorites UI (mark/unmark from viewer and grid)
 * □

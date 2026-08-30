@@ -1,15 +1,14 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { Image } from 'expo-image';
 import React from 'react';
-import { usePhotos } from '../hooks/usePhotos';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { usePhotos } from '../hooks/usePhotos';
 import { makePhoto } from '../test-utils';
 import PhotoViewer from './PhotoViewer';
 
 const mockGoBack = jest.fn();
 
-let mockRouteParams: { photoId: string; albumId: string; initialIndex?: number } = {
-  photoId: 'p2',
+let mockRouteParams: { albumId: string; initialIndex?: number } = {
   albumId: 'album-1',
   initialIndex: 1,
 };
@@ -31,36 +30,36 @@ jest.mock('@react-navigation/native', () => ({
   useIsFocused: () => true,
 }));
 
-jest.mock('../hooks/usePhotos');
 jest.mock('../hooks/useReducedMotion');
+jest.mock('../hooks/usePhotos');
 
-const mockedUsePhotos = usePhotos as jest.MockedFunction<typeof usePhotos>;
 const mockedUseReducedMotion = useReducedMotion as jest.MockedFunction<typeof useReducedMotion>;
-
-const mockPhotosReturn = (photos: ReturnType<typeof makePhoto>[]) =>
-  mockedUsePhotos.mockReturnValue({
-    photos,
-    loading: false,
-    error: null,
-    refreshing: false,
-    retryCount: 0,
-    loadMore: jest.fn(),
-    refreshPhotos: jest.fn(),
-    retryLoad: jest.fn(),
-    deletePhoto: jest.fn(),
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  } as any);
+const mockedUsePhotos = usePhotos as jest.MockedFunction<typeof usePhotos>;
 
 describe('PhotoViewer', () => {
+  const mockPhotos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })];
+
   beforeEach(() => {
     jest.clearAllMocks();
     mockedUseReducedMotion.mockReturnValue(false);
-    mockRouteParams = { photoId: 'p2', albumId: 'album-1', initialIndex: 1 };
+    mockedUsePhotos.mockReturnValue({
+      photos: mockPhotos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      retryCount: 0,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+    mockRouteParams = {
+      albumId: 'album-1',
+      initialIndex: 1,
+    };
   });
 
   it('renders the photo at the initial index with position info', () => {
-    mockPhotosReturn([makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })]);
-
     const { getByLabelText, getByText } = render(<PhotoViewer />);
 
     expect(getByLabelText('Photo 2 of 3')).toBeTruthy();
@@ -68,8 +67,10 @@ describe('PhotoViewer', () => {
   });
 
   it('hides the previous arrow on the first photo and shows the next arrow', () => {
-    mockRouteParams = { photoId: 'p1', albumId: 'album-1', initialIndex: 0 };
-    mockPhotosReturn([makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' })]);
+    mockRouteParams = {
+      albumId: 'album-1',
+      initialIndex: 0,
+    };
 
     const { queryByLabelText, getByLabelText } = render(<PhotoViewer />);
 
@@ -78,8 +79,6 @@ describe('PhotoViewer', () => {
   });
 
   it('advances to the next photo when the next arrow is pressed', () => {
-    mockPhotosReturn([makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })]);
-
     const { getByLabelText, queryByLabelText, getByText } = render(<PhotoViewer />);
 
     fireEvent.press(getByLabelText('Next photo'));
@@ -90,7 +89,10 @@ describe('PhotoViewer', () => {
   });
 
   it('goes back when the close button is pressed', () => {
-    mockPhotosReturn([makePhoto({ id: 'p1' })]);
+    mockRouteParams = {
+      albumId: 'album-1',
+      initialIndex: 0,
+    };
 
     const { getByLabelText } = render(<PhotoViewer />);
 
@@ -99,7 +101,17 @@ describe('PhotoViewer', () => {
   });
 
   it('renders an empty container when the album has no photos', () => {
-    mockPhotosReturn([]);
+    mockedUsePhotos.mockReturnValue({
+      photos: [],
+      loading: false,
+      error: null,
+      refreshing: false,
+      retryCount: 0,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
 
     const { queryByLabelText, UNSAFE_getAllByType } = render(<PhotoViewer />);
     const views = UNSAFE_getAllByType(require('react-native').View);
@@ -113,7 +125,21 @@ describe('PhotoViewer', () => {
   it('prefetches both neighbouring photos so swipes resolve from cache', () => {
     const prefetch = Image.prefetch as jest.Mock;
     const photos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' }), makePhoto({ id: 'p3' })];
-    mockPhotosReturn(photos);
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      retryCount: 0,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+    mockRouteParams = {
+      albumId: 'album-1',
+      initialIndex: 1,
+    };
 
     render(<PhotoViewer />);
 
@@ -122,9 +148,22 @@ describe('PhotoViewer', () => {
 
   it('prefetches only the existing neighbour at the edge of the album', () => {
     const prefetch = Image.prefetch as jest.Mock;
-    mockRouteParams = { photoId: 'p1', albumId: 'album-1', initialIndex: 0 };
     const photos = [makePhoto({ id: 'p1' }), makePhoto({ id: 'p2' })];
-    mockPhotosReturn(photos);
+    mockedUsePhotos.mockReturnValue({
+      photos,
+      loading: false,
+      error: null,
+      refreshing: false,
+      retryCount: 0,
+      loadMore: jest.fn(),
+      refreshPhotos: jest.fn(),
+      retryLoad: jest.fn(),
+      deletePhoto: jest.fn(),
+    } as any);
+    mockRouteParams = {
+      albumId: 'album-1',
+      initialIndex: 0,
+    };
 
     render(<PhotoViewer />);
 

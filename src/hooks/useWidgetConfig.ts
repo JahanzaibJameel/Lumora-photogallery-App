@@ -4,6 +4,12 @@ import type { WidgetConfig } from '../services/widget.service';
 import { errorReporter } from '../utils/errorReporting';
 import { categorizeError } from '../utils/errors';
 
+let widgetIdCounter = 0;
+function generateWidgetId(): string {
+  widgetIdCounter += 1;
+  return `widget_${widgetIdCounter}`;
+}
+
 export interface UseWidgetConfigReturn {
   widgets: WidgetConfig[];
   loading: boolean;
@@ -90,7 +96,7 @@ export const useWidgetConfig = (): UseWidgetConfigReturn => {
   const addWidget = useCallback((config: Omit<WidgetConfig, 'id'>) => {
     const newWidget: WidgetConfig = {
       ...config,
-      id: `widget_${Date.now()}`,
+      id: generateWidgetId(),
     };
     setWidgets(prev => {
       const next = [...prev, newWidget];

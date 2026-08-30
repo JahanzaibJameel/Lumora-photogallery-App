@@ -77,6 +77,7 @@ export interface IPerformanceMonitoringService {
   startSession(): string;
   endSession(sessionId: string): void;
   getMemorySnapshot(): MemoryMetric | null;
+  destroy(): void;
 }
 
 let idCounter = 0;
@@ -105,9 +106,12 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
   private memoryTimer: ReturnType<typeof setInterval> | null = null;
   private cacheStats: Map<string, { hits: number; misses: number }> = new Map();
   private isInitialized = false;
+  private flushMutex: Promise<void> = Promise.resolve();
+  private memoryAvailable: boolean;
 
   private constructor(private storage: IStorageService) {
     this.config = { ...DEFAULT_PERFORMANCE_CONFIG };
+    this.memoryAvailable = this.checkMemoryAvailability();
   }
 
   static getInstance(storage?: IStorageService): PerformanceMonitoringService {
@@ -121,6 +125,9 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
   }
 
   static resetInstance(): void {
+    if (PerformanceMonitoringService.instance) {
+      PerformanceMonitoringService.instance.destroy();
+    }
     PerformanceMonitoringService.instance = null;
   }
 
@@ -319,17 +326,20 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
   }
 
   async flushToStorage(): Promise<void> {
-    if (this.metrics.length === 0) return;
+    this.flushMutex = this.flushMutex.then(async () => {
+      if (this.metrics.length === 0) return;
 
-    const existingMetrics = this.storage.get<PerformanceMetric[]>(
-      STORAGE_KEY_PERFORMANCE_METRICS
-    ) || [];
+      const existingMetrics = this.storage.get<PerformanceMetric[]>(
+        STORAGE_KEY_PERFORMANCE_METRICS
+      ) || [];
 
-    const combined = [...existingMetrics, ...this.metrics];
-    const trimmed = combined.slice(-this.config.maxStoredMetrics);
+      const combined = [...existingMetrics, ...this.metrics];
+      const trimmed = combined.slice(-this.config.maxStoredMetrics);
 
-    this.storage.save(STORAGE_KEY_PERFORMANCE_METRICS, trimmed);
-    this.metrics = [];
+      this.storage.save(STORAGE_KEY_PERFORMANCE_METRICS, trimmed);
+      this.metrics = [];
+    });
+    return this.flushMutex;
   }
 
   async clearMetrics(): Promise<void> {
@@ -350,6 +360,7 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
   }
 
   startSession(): string {
+    this.pruneEndedSessions();
     const id = generateId();
     this.sessions.set(id, { startTime: Date.now() });
     return id;
@@ -359,6 +370,16 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
     const session = this.sessions.get(sessionId);
     if (session) {
       session.endTime = Date.now();
+    }
+  }
+
+  private pruneEndedSessions(): void {
+    const now = Date.now();
+    const oneHour = 60 * 60 * 1000;
+    for (const [id, session] of this.sessions) {
+      if (session.endTime && now - session.endTime > oneHour) {
+        this.sessions.delete(id);
+      }
     }
   }
 
@@ -398,7 +419,7 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
       }, this.config.aggregationIntervalMs);
     }
 
-    if (this.config.trackMemory) {
+    if (this.config.trackMemory && this.memoryAvailable) {
       this.memoryTimer = setInterval(() => {
         const snapshot = this.getMemorySnapshot();
         if (snapshot) {
@@ -537,6 +558,17 @@ export class PerformanceMonitoringService implements IPerformanceMonitoringServi
 
   private now(): number {
     return typeof performance !== 'undefined' ? performance.now() : Date.now();
+  }
+
+  private checkMemoryAvailability(): boolean {
+    if (Platform.OS !== 'web') return false;
+    const perf = performance as unknown as {
+      memory?: {
+        usedJSHeapSize: number;
+        totalJSHeapSize: number;
+      };
+    };
+    return !!perf.memory;
   }
 
   destroy(): void {

@@ -1,10 +1,17 @@
-import React, { ReactNode, useMemo, useEffect } from 'react';
-import { createContext } from 'react';
+import React, { ReactNode, useMemo, useContext, useRef, useEffect, createContext } from 'react';
 
 type ServiceToken = string;
 
+/**
+ * ServiceRegistry is the global service container singleton.
+ *
+ * Design: services self-register at module load (via registerService) so that
+ * service-to-service calls (e.g. MediaService → PerformanceMonitoringService)
+ * resolve without a React context. The ServiceProvider component wraps the tree
+ * and can override the container for testing. The ref indirection keeps
+ * resolveService stable across renders while remaining the single write point.
+ */
 const defaultContainer = new Map<ServiceToken, unknown>();
-let activeContainer = defaultContainer;
 
 export const ServiceTokens = {
   MediaService: 'MediaService',
@@ -15,25 +22,31 @@ export const ServiceTokens = {
 
 export type ServiceTokenType = typeof ServiceTokens[keyof typeof ServiceTokens];
 
-export function registerService<T>(token: ServiceToken, implementation: T): void {
-  activeContainer.set(token, implementation);
-}
+const ServiceContext = createContext<Map<ServiceToken, unknown>>(defaultContainer);
+
+export { ServiceContext };
+
+// Global container ref: the single write point for service registration.
+// Written by ServiceProvider on mount; read by resolveService everywhere.
+const activeContainerRef = { current: defaultContainer };
 
 export function resolveService<T>(token: ServiceToken): T {
-  const service = activeContainer.get(token);
+  const container = activeContainerRef.current;
+  const service = container.get(token);
   if (!service) {
     throw new Error(`Service not registered: ${token}`);
   }
   return service as T;
 }
 
-export function clearServices(): void {
-  activeContainer.clear();
+export function registerService<T>(token: ServiceToken, implementation: T): void {
+  activeContainerRef.current.set(token, implementation);
 }
 
-const ServiceContext = createContext<Map<ServiceToken, unknown>>(defaultContainer);
-
-export { ServiceContext };
+export function clearServices(): void {
+  activeContainerRef.current = defaultContainer;
+  defaultContainer.clear();
+}
 
 interface ServiceProviderProps {
   children: ReactNode;
@@ -52,10 +65,9 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children, serv
   }, [services]);
 
   useEffect(() => {
-    const prev = activeContainer;
-    activeContainer = container;
+    activeContainerRef.current = container;
     return () => {
-      activeContainer = prev;
+      activeContainerRef.current = defaultContainer;
     };
   }, [container]);
 
@@ -65,3 +77,12 @@ export const ServiceProvider: React.FC<ServiceProviderProps> = ({ children, serv
     </ServiceContext.Provider>
   );
 };
+
+export function useService<T>(token: ServiceToken): T {
+  const container = useContext(ServiceContext);
+  const service = container.get(token);
+  if (!service) {
+    throw new Error(`Service not registered: ${token}`);
+  }
+  return service as T;
+}

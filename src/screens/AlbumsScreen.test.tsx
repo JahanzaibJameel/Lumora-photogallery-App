@@ -5,7 +5,7 @@ import React from 'react';
 import { useAlbums } from '../hooks/useAlbums';
 import { usePermission } from '../hooks/usePermission';
 import { useTheme } from '../hooks/useTheme';
-import { Album } from '../types';
+import { makeAlbum } from '../test-utils';
 import { RootStackParamList } from '../types/navigation';
 import AlbumsScreen from './AlbumsScreen';
 
@@ -29,26 +29,31 @@ const mockTheme = {
   isDark: false,
 };
 
-const makeAlbum = (overrides: Partial<Album> = {}): Album => ({
-  id: overrides.id ?? 'album-1',
-  title: overrides.title ?? 'Test Album',
-  count: overrides.count ?? 10,
-  thumbnailUri: overrides.thumbnailUri ?? 'file://thumb.jpg',
-  createdAt: overrides.createdAt ?? 1000,
-  updatedAt: overrides.updatedAt ?? 2000,
-  ...overrides,
-});
-
 const Stack = createStackNavigator<RootStackParamList>();
 
-const renderScreen = (ui: React.ReactElement) =>
-  render(
+const mockNavigateFn = jest.fn();
+
+jest.mock('@react-navigation/native', () => ({
+  __esModule: true,
+  NavigationContainer: ({ children }: { children: React.ReactNode }) => children,
+  useNavigation: () => ({ navigate: mockNavigateFn, goBack: jest.fn() }),
+  useRoute: () => ({ key: 'route-key', name: 'Albums', params: {} }),
+  useFocusEffect: () => {},
+  useIsFocused: () => true,
+}));
+
+const renderScreen = (ui: React.ReactElement, mockNavigate?: jest.Mock) => {
+  if (mockNavigate) {
+    mockNavigateFn.mockImplementation(mockNavigate);
+  }
+  return render(
     <NavigationContainer>
       <Stack.Navigator>
         <Stack.Screen name="Albums" component={() => ui} />
       </Stack.Navigator>
     </NavigationContainer>
   );
+};
 
 describe('AlbumsScreen', () => {
   beforeEach(() => {
@@ -63,13 +68,14 @@ describe('AlbumsScreen', () => {
       loading: true,
       error: null,
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
 
     const { UNSAFE_getAllByType } = renderScreen(<AlbumsScreen />);
-    expect(UNSAFE_getAllByType(require('react-native').View).length).toBeGreaterThan(0);
+    // Skeletons render as Views; verify the loading state produced content
+    const views = UNSAFE_getAllByType(require('react-native').View);
+    expect(views.length).toBeGreaterThan(0);
   });
 
   it('renders empty state when no albums', async () => {
@@ -78,7 +84,6 @@ describe('AlbumsScreen', () => {
       loading: false,
       error: null,
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
@@ -93,7 +98,6 @@ describe('AlbumsScreen', () => {
       loading: false,
       error: { message: 'Network error', category: 'NETWORK' },
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
@@ -109,7 +113,6 @@ describe('AlbumsScreen', () => {
       loading: false,
       error: null,
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
@@ -127,14 +130,13 @@ describe('AlbumsScreen', () => {
       loading: false,
       error: null,
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
 
-    const { getByLabelText } = renderScreen(<AlbumsScreen />);
+    const { getByLabelText } = renderScreen(<AlbumsScreen />, mockNavigate);
     fireEvent.press(getByLabelText('Open album Beach, 10 photos'));
-    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith('Photos', { albumId: 'a1', albumTitle: 'Beach' });
   });
 
   it('shows permission empty state when permission denied', async () => {
@@ -143,7 +145,6 @@ describe('AlbumsScreen', () => {
       loading: false,
       error: null,
       refreshing: false,
-      loadMore: jest.fn(),
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
     } as any);
@@ -151,5 +152,72 @@ describe('AlbumsScreen', () => {
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     expect(getByText('Access Your Photos')).toBeTruthy();
+  });
+
+  it('calls retryLoad when retry button is pressed in error state', () => {
+    const mockRetryLoad = jest.fn();
+    mockedUseAlbums.mockReturnValue({
+      albums: [],
+      loading: false,
+      error: { message: 'Network error', category: 'NETWORK' },
+      refreshing: false,
+      refreshAlbums: jest.fn(),
+      retryLoad: mockRetryLoad,
+    } as any);
+
+    const { getByText } = renderScreen(<AlbumsScreen />);
+    fireEvent.press(getByText('Retry'));
+    expect(mockRetryLoad).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls refreshAlbums when FAB is pressed', () => {
+    const mockRefreshAlbums = jest.fn();
+    const albums = [makeAlbum({ id: 'a1', title: 'Beach' })];
+    mockedUseAlbums.mockReturnValue({
+      albums,
+      loading: false,
+      error: null,
+      refreshing: false,
+      refreshAlbums: mockRefreshAlbums,
+      retryLoad: jest.fn(),
+    } as any);
+
+    const { getByLabelText } = renderScreen(<AlbumsScreen />);
+    fireEvent.press(getByLabelText('Refresh albums'));
+    expect(mockRefreshAlbums).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls refreshAlbums when pull-to-refresh is triggered', () => {
+    const mockRefreshAlbums = jest.fn();
+    const albums = [makeAlbum({ id: 'a1', title: 'Beach' })];
+    mockedUseAlbums.mockReturnValue({
+      albums,
+      loading: false,
+      error: null,
+      refreshing: false,
+      refreshAlbums: mockRefreshAlbums,
+      retryLoad: jest.fn(),
+    } as any);
+
+    const { UNSAFE_getByType } = renderScreen(<AlbumsScreen />);
+    const refreshControl = UNSAFE_getByType(require('react-native').RefreshControl);
+    fireEvent(refreshControl, 'refresh');
+    expect(mockRefreshAlbums).toHaveBeenCalledTimes(1);
+  });
+
+  it('calls refreshAlbums when empty state refresh button is pressed', () => {
+    const mockRefreshAlbums = jest.fn();
+    mockedUseAlbums.mockReturnValue({
+      albums: [],
+      loading: false,
+      error: null,
+      refreshing: false,
+      refreshAlbums: mockRefreshAlbums,
+      retryLoad: jest.fn(),
+    } as any);
+
+    const { getByText } = renderScreen(<AlbumsScreen />);
+    fireEvent.press(getByText('Refresh'));
+    expect(mockRefreshAlbums).toHaveBeenCalledTimes(1);
   });
 });

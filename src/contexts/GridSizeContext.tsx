@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, useMemo } from 'react';
+import React, { createContext, useContext, useState, useCallback, useMemo, useEffect } from 'react';
+import { getStorageService, StorageKeys } from '../services/storage.service';
 
 type GridSize = 'small' | 'medium' | 'large';
 
@@ -11,10 +12,21 @@ interface GridSizeContextValue {
 const GridSizeContext = createContext<GridSizeContextValue | undefined>(undefined);
 
 export const GridSizeProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [gridSize, setGridSize] = useState<GridSize>('medium');
+  const [gridSize, setGridSizeState] = useState<GridSize>(() => {
+    const saved = getStorageService().get<GridSize>(StorageKeys.GRID_SIZE);
+    return saved ?? 'medium';
+  });
+
+  useEffect(() => {
+    getStorageService().save(StorageKeys.GRID_SIZE, gridSize);
+  }, [gridSize]);
+
+  const setGridSize = useCallback((size: GridSize) => {
+    setGridSizeState(size);
+  }, []);
 
   const cycleGridSize = useCallback(() => {
-    setGridSize(prev =>
+    setGridSizeState(prev =>
       prev === 'small' ? 'medium' : prev === 'medium' ? 'large' : 'small'
     );
   }, []);
@@ -23,7 +35,7 @@ export const GridSizeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   // a fresh value object and re-renders the entire tree below it.
   const value = useMemo(
     () => ({ gridSize, setGridSize, cycleGridSize }),
-    [gridSize, cycleGridSize]
+    [gridSize, setGridSize, cycleGridSize]
   );
 
   return (

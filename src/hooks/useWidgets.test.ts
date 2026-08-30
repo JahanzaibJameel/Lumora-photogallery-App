@@ -1,12 +1,22 @@
 import { renderHook, act, waitFor } from '@testing-library/react-native';
+import { getWidgetService } from '../services/widget.service';
 import { storageService } from '../services/storage.service';
-import WidgetService from '../services/widget.service';
 import { makeWidgetData } from '../test-utils';
 import { useWidgets } from './useWidgets';
 
 jest.mock('../services/widget.service');
 
-const mockWidgetService = WidgetService as jest.Mocked<typeof WidgetService>;
+const mockGetWidgetService = getWidgetService as jest.MockedFunction<typeof getWidgetService>;
+
+const mockWidgetService = {
+  getDailyMemory: jest.fn(),
+  getRandomPhotos: jest.fn(),
+  getAlbumPreview: jest.fn(),
+  getFavorites: jest.fn(),
+  saveWidgetData: jest.fn(),
+  getWidgetData: jest.fn(),
+  clearCache: jest.fn(),
+};
 
 const NOW = Date.now();
 
@@ -16,6 +26,7 @@ describe('useWidgets', () => {
     jest.useRealTimers();
     jest.spyOn(Date, 'now').mockReturnValue(NOW);
     storageService.clear();
+    mockGetWidgetService.mockReturnValue(mockWidgetService as any);
 
     mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue(makeWidgetData({ type: 'daily_memory', title: 'Daily Memory' }));

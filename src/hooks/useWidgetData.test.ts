@@ -1,11 +1,21 @@
 import { renderHook, act } from '@testing-library/react-native';
-import WidgetService from '../services/widget.service';
+import { getWidgetService } from '../services/widget.service';
 import { errorReporter } from '../utils/errorReporting';
 import { useWidgetData } from './useWidgetData';
 
 jest.mock('../services/widget.service');
 
-const mockWidgetService = WidgetService as jest.Mocked<typeof WidgetService>;
+const mockGetWidgetService = getWidgetService as jest.MockedFunction<typeof getWidgetService>;
+
+const mockWidgetService = {
+  getDailyMemory: jest.fn(),
+  getRandomPhotos: jest.fn(),
+  getAlbumPreview: jest.fn(),
+  getFavorites: jest.fn(),
+  saveWidgetData: jest.fn(),
+  getWidgetData: jest.fn(),
+  clearCache: jest.fn(),
+};
 
 const makeWidget = (overrides: Partial<import('../services/widget.service').WidgetConfig> = {}): import('../services/widget.service').WidgetConfig => ({
   id: overrides.id ?? 'widget-1',
@@ -19,6 +29,7 @@ const makeWidget = (overrides: Partial<import('../services/widget.service').Widg
 describe('useWidgetData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetWidgetService.mockReturnValue(mockWidgetService as any);
     mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue({
       type: 'daily_memory',
@@ -49,7 +60,7 @@ describe('useWidgetData', () => {
       updatedAt: Date.now(),
     });
     mockWidgetService.saveWidgetData.mockReturnValue(undefined);
-    (mockWidgetService.clearCache as jest.Mock).mockReturnValue(undefined);
+    mockWidgetService.clearCache.mockReturnValue(undefined);
   });
 
   it('returns the expected hook shape', () => {
@@ -124,6 +135,7 @@ describe('useWidgetData', () => {
 describe('useWidgetData error reporting', () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    mockGetWidgetService.mockReturnValue(mockWidgetService as any);
     mockWidgetService.getWidgetData.mockReturnValue(null);
   });
 

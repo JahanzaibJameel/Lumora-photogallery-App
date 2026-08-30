@@ -59,29 +59,32 @@ export function useRenderMetrics(componentName: string) {
   const service = usePerformanceMonitoring();
   const renderCountRef = useRef(0);
   const totalRenderTimeRef = useRef(0);
+  const renderStartTimeRef = useRef<number>(0);
 
   useEffect(() => {
     if (!service) return;
 
-    const startTime = performance.now();
+    renderStartTimeRef.current = performance.now();
     renderCountRef.current += 1;
-
-    return () => {
-      const renderTime = performance.now() - startTime;
-      totalRenderTimeRef.current += renderTime;
-
-      service.recordMetric(
-        `render_${componentName}`,
-        'list_render',
-        renderTime,
-        'ms',
-        {
-          renderCount: renderCountRef.current,
-          totalRenderTime: totalRenderTimeRef.current,
-        }
-      );
-    };
   });
+
+  useEffect(() => {
+    if (!service || renderStartTimeRef.current === 0) return;
+
+    const renderTime = performance.now() - renderStartTimeRef.current;
+    totalRenderTimeRef.current += renderTime;
+
+    service.recordMetric(
+      `render_${componentName}`,
+      'list_render',
+      renderTime,
+      'ms',
+      {
+        renderCount: renderCountRef.current,
+        totalRenderTime: totalRenderTimeRef.current,
+      }
+    );
+  }, [service, componentName]);
 
   return {
     renderCount: renderCountRef.current,

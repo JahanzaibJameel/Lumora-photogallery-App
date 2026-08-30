@@ -17,7 +17,7 @@ describe('BlurHashImage', () => {
     expect(UNSAFE_getByType('View')).toBeTruthy();
   });
 
-  it('renders a child View placeholder when not loaded', () => {
+  it('renders multiple Views (container + placeholder + image)', () => {
     const { UNSAFE_getAllByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
     );
@@ -25,36 +25,32 @@ describe('BlurHashImage', () => {
     expect(UNSAFE_getAllByType('View').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('accepts a blurhash prop', () => {
+  it('renders when a blurhash prop is provided', () => {
     const { UNSAFE_getAllByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" blurhash="LFFaXYk^00I[ogs" style={{ width: 100, height: 100 }} />
     );
     expect(UNSAFE_getAllByType('View')).toBeTruthy();
   });
 
-  it('uses default contentFit of "cover"', () => {
+  it('renders with default contentFit', () => {
     const { UNSAFE_getByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
     );
     const image = UNSAFE_getByType('View');
-    // The mocked Image receives contentFit; we just verify it renders
     expect(image).toBeTruthy();
   });
 
-  it('uses default transitionDuration of 300', () => {
+  it('renders with default transitionDuration', () => {
     const { UNSAFE_getByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
     );
     expect(UNSAFE_getByType('View')).toBeTruthy();
   });
 
-  it('does not show placeholder after onLoad is called', () => {
+  it('renders an Image component', () => {
     const { UNSAFE_getByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
     );
-    // Initially there should be a placeholder
-    // After onLoad, the placeholder disappears
-    // We verify the component renders an Image component
     expect(UNSAFE_getByType('View')).toBeTruthy();
   });
 
@@ -75,7 +71,7 @@ describe('BlurHashImage', () => {
     expect(image!.props.placeholder).toBeUndefined();
   });
 
-  it('caches decoded images in memory and on disk', () => {
+  it('configures memory-disk cache policy and 300ms transition', () => {
     const { UNSAFE_getAllByType } = renderWithProviders(
       <BlurHashImage uri="file://photo.jpg" style={{ width: 100, height: 100 }} />
     );

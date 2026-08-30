@@ -91,21 +91,13 @@ function formatAlbum(album: MediaLibrary.Album): Album {
 
 function lruEvict<K, V>(cache: Map<K, CacheEntry<V>>, maxSize: number): void {
   if (cache.size <= maxSize) return;
-  // Single-pass oldest-entry eviction: cheaper than sorting every entry on
-  // each overflow insert, and equivalent because timestamps only move forward.
-  let oldestKey: K | undefined;
-  let oldestTimestamp = Infinity;
-  while (cache.size > maxSize) {
-    for (const [key, entry] of cache) {
-      if (entry.timestamp < oldestTimestamp) {
-        oldestTimestamp = entry.timestamp;
-        oldestKey = key;
-      }
-    }
-    if (oldestKey === undefined) break;
-    cache.delete(oldestKey);
-    oldestKey = undefined;
-    oldestTimestamp = Infinity;
+  // Single-pass eviction: convert to array, sort by timestamp ascending, delete
+  // oldest entries until within limit. O(n log n) vs O(n²) for repeated scans.
+  const entries = Array.from(cache.entries());
+  entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
+  const toDelete = entries.length - maxSize;
+  for (let i = 0; i < toDelete; i++) {
+    cache.delete(entries[i][0]);
   }
 }
 
@@ -119,6 +111,7 @@ export interface IMediaService {
   deletePhoto(photoId: string): Promise<boolean>;
   getAssetInfo(photoId: string): Promise<MediaLibrary.Asset | null>;
   clearCache(): void;
+  invalidateAlbum(albumId: string): void;
 }
 
 export class MediaService implements IMediaService {
@@ -225,7 +218,7 @@ export class MediaService implements IMediaService {
     const perfService = this.getPerfService();
     const timerId = perfService?.startTimer('getPhotosFromAlbum', 'api_call', { albumId, limit });
 
-    const cacheKey = `${albumId}_${after ?? 'start'}_${limit}`;
+    const cacheKey = `${albumId}||${after ?? 'start'}||${limit}`;
 
     const cached = this.photosCache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < PHOTOS_CACHE_TTL) {
@@ -387,14 +380,14 @@ export class MediaService implements IMediaService {
     await MediaLibrary.deleteAssetsAsync([photoId]);
 
     // Targeted invalidation: drop only the cached pages that actually contain
-    // the deleted photo (cache keys are `${albumId}_${after}_${limit}`, so key
+    // the deleted photo (cache keys are `${albumId}||${after}||${limit}`, so key
     // matching alone never hits), and decrement counts solely for albums those
     // pages belong to instead of every cached album.
     const affectedAlbumIds = new Set<string>();
     for (const [key, entry] of this.photosCache) {
       if (!entry.value.photos.some(photo => photo.id === photoId)) continue;
       this.photosCache.delete(key);
-      const separator = key.indexOf('_');
+      const separator = key.indexOf('||');
       if (separator > 0) affectedAlbumIds.add(key.slice(0, separator));
     }
 
@@ -418,7 +411,7 @@ export class MediaService implements IMediaService {
     }
   }
 
-  async getAssetInfo(photoId: string) {
+  async getAssetInfo(photoId: string): Promise<MediaLibrary.Asset | null> {
     if (isWebPlatform()) return null;
     return MediaLibrary.getAssetInfoAsync(photoId);
   }
@@ -430,6 +423,16 @@ export class MediaService implements IMediaService {
     this.inFlight.clear();
   }
 
+  invalidateAlbum(albumId: string): void {
+    this.albumsCache.delete(albumId);
+    this.thumbnailsCache.delete(albumId);
+    for (const [key] of this.photosCache) {
+      if (key.startsWith(`${albumId}||`)) {
+        this.photosCache.delete(key);
+      }
+    }
+  }
+
   private getPerfService(): IPerformanceMonitoringService | null {
     try {
       return resolveService<IPerformanceMonitoringService>(ServiceTokens.PerformanceService);
@@ -437,6 +440,20 @@ export class MediaService implements IMediaService {
       return null;
     }
   }
+
+  __test__() {
+    return {
+      albumsCache: this.albumsCache,
+      photosCache: this.photosCache,
+      thumbnailsCache: this.thumbnailsCache,
+    };
+  }
+}
+
+export interface MediaServiceCacheState {
+  albums: { id: string; count: number }[];
+  photos: { key: string; photoCount: number }[];
+  thumbnails: { id: string; uri: string }[];
 }
 
 const mediaService = MediaService.getInstance();

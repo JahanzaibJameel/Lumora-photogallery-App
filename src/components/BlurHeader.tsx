@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import { BlurView } from 'expo-blur';
 import React, { memo, useState } from 'react';
 import {
@@ -40,7 +40,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
     onSearchChange,
     scrollY,
   }) => {
-    const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
+    const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
     const { isDark } = useTheme();
     const reduceMotion = useReducedMotion();
     const insets = useSafeAreaInsets();
@@ -49,7 +49,7 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
 
     const headerStyle = useAnimatedStyle(() => {
       if (!scrollY || reduceMotion) {
-        return { opacity: reduceMotion ? 1 : 0 };
+        return { opacity: 1 };
       }
       const opacity = interpolate(
         scrollY.value,

@@ -22,6 +22,9 @@ function MainApp() {
     if (perfService) {
       perfService.initialize();
     }
+    return () => {
+      perfService?.destroy();
+    };
   }, []);
 
   return (
@@ -43,7 +46,7 @@ export default function App() {
     <ThemeProvider>
       <ReducedMotionProvider>
         <GridSizeProvider>
-          <GestureHandlerRootView style={{ flex: 1 }} accessible={true}>
+          <GestureHandlerRootView style={{ flex: 1 }}>
             <MainApp />
           </GestureHandlerRootView>
         </GridSizeProvider>

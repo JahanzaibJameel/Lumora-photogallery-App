@@ -1,5 +1,5 @@
 import * as Haptics from 'expo-haptics';
-import React, { memo, useCallback, useEffect } from 'react';
+import React, { memo, useCallback, useEffect, useRef } from 'react';
 import {
     StyleSheet,
     TouchableOpacity,
@@ -26,11 +26,6 @@ interface PhotoGridItemProps {
 
 const AnimatedTouchable = Animated.createAnimatedComponent(TouchableOpacity);
 
-// FlashList recycles cells aggressively, so mount effects fire again for every
-// recycled view; remembering which photos already played their entrance keeps
-// fast scrolling free of replaying stagger springs.
-const entrancePlayedFor = new Set<string>();
-
 const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
   photo,
   index,
@@ -39,19 +34,26 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
 }) => {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
+  const entrancePlayedFor = useRef<Set<string>>(new Set());
+  // Prevent the Set from growing unbounded in large galleries: cap it and reset
+  // when the photo list changes (the animation only runs on first mount anyway).
+  const maxEntranceCacheSize = 200;
+  if (entrancePlayedFor.current.size > maxEntranceCacheSize) {
+    entrancePlayedFor.current.clear();
+  }
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(reduceMotion || entrancePlayedFor.has(photo.id) ? 1 : 0);
-  const translateY = useSharedValue(reduceMotion || entrancePlayedFor.has(photo.id) ? 0 : 20);
+  const opacity = useSharedValue(reduceMotion || entrancePlayedFor.current.has(photo.id) ? 1 : 0);
+  const translateY = useSharedValue(reduceMotion || entrancePlayedFor.current.has(photo.id) ? 0 : 20);
 
   useEffect(() => {
-    if (reduceMotion || entrancePlayedFor.has(photo.id)) {
+    if (reduceMotion || entrancePlayedFor.current.has(photo.id)) {
       opacity.value = 1;
       translateY.value = 0;
       return;
     }
     opacity.value = withDelay(index * 30, withSpring(1, { damping: 20 }));
     translateY.value = withDelay(index * 30, withSpring(0, { damping: 20 }));
-    entrancePlayedFor.add(photo.id);
+    entrancePlayedFor.current.add(photo.id);
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photo.id, index, reduceMotion]);
 

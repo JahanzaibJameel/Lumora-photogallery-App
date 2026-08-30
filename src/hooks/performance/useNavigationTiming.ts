@@ -3,11 +3,11 @@ import { usePerformanceMonitoring } from './index';
 
 export function useNavigationTiming(screenName: string, coldStart = false) {
   const perfService = usePerformanceMonitoring();
-  const startTimeRef = useRef<number>(Date.now());
+  const startTimeRef = useRef<number>(performance.now());
   const hasRecordedRef = useRef(false);
 
   useEffect(() => {
-    startTimeRef.current = Date.now();
+    startTimeRef.current = performance.now();
     hasRecordedRef.current = false;
   }, [screenName]);
 
@@ -15,7 +15,7 @@ export function useNavigationTiming(screenName: string, coldStart = false) {
     if (hasRecordedRef.current || !perfService) return;
 
     const handle = setTimeout(() => {
-      const duration = Date.now() - startTimeRef.current;
+      const duration = performance.now() - startTimeRef.current;
       perfService.recordNavigation({
         screenName,
         durationMs: duration,

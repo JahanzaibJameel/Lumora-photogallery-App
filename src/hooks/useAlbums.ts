@@ -4,7 +4,6 @@ import { Album } from '../types';
 import { errorReporter } from '../utils/errorReporting';
 import { AppError, ErrorCategory, ErrorSeverity, categorizeError } from '../utils/errors';
 
-const BATCH_SIZE = 20;
 const MAX_RETRIES = 2;
 
 interface AlbumsState {
@@ -15,7 +14,17 @@ interface AlbumsState {
   retryCount: number;
 }
 
-export const useAlbums = () => {
+export interface UseAlbumsReturn {
+  albums: Album[];
+  loading: boolean;
+  error: AppError | null;
+  refreshing: boolean;
+  retryCount: number;
+  refreshAlbums: () => void;
+  retryLoad: () => void;
+}
+
+export const useAlbums = (): UseAlbumsReturn => {
   const [state, setState] = useState<AlbumsState>({
     albums: [],
     loading: true,
@@ -24,51 +33,50 @@ export const useAlbums = () => {
     retryCount: 0,
   });
 
-  const lastFetchedIndex = useRef(0);
-  const hasMore = useRef(true);
-  const cancelled = useRef(false);
+  const abortController = useRef<AbortController | null>(null);
   // Mirrors state.retryCount so loadAlbums can stay dependency-free
   // (adding reactive retryCount to its deps would re-trigger the mount
   // effect after every failure and cause an automatic retry loop).
   const retryCountRef = useRef(0);
   const retryTimeout = useRef<ReturnType<typeof setTimeout>>(undefined);
+  const mountedRef = useRef(true);
+
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+      mountedRef.current = false;
+    };
+  }, []);
 
   const loadAlbums = useCallback(async (refresh = false) => {
+    abortController.current?.abort();
+    const controller = new AbortController();
+    abortController.current = controller;
+
     try {
       if (refresh) {
         setState(s => ({ ...s, refreshing: true, error: null, retryCount: 0 }));
         retryCountRef.current = 0;
-        lastFetchedIndex.current = 0;
-        hasMore.current = true;
       } else {
         setState(s => ({ ...s, loading: true, error: null }));
       }
 
+      if (controller.signal.aborted) return;
+
       const mediaService = getMediaService();
-      const fetchedAlbums = await mediaService.getAlbums(
-        lastFetchedIndex.current,
-        BATCH_SIZE
-      );
+      const fetchedAlbums = await mediaService.getAlbums(0, 200);
 
-      if (cancelled.current) return;
-
-      if (fetchedAlbums.length < BATCH_SIZE) {
-        hasMore.current = false;
-      }
+      if (controller.signal.aborted) return;
 
       setState(s => ({
         ...s,
-        albums: refresh
-          ? fetchedAlbums
-          : Array.from(new Map([...s.albums, ...fetchedAlbums].map(a => [a.id, a])).values()),
+        albums: fetchedAlbums,
       }));
-
-      lastFetchedIndex.current += fetchedAlbums.length;
     } catch (err) {
-      if (cancelled.current) return;
+      if (controller.signal.aborted) return;
       const appError = categorizeError(err);
       retryCountRef.current += 1;
-      appError.context = { ...appError.context, offset: lastFetchedIndex.current, retryCount: retryCountRef.current };
+      appError.context = { ...appError.context, retryCount: retryCountRef.current };
       errorReporter.capture(appError, { hook: 'useAlbums', action: 'loadAlbums' });
 
       setState(s => ({
@@ -77,17 +85,16 @@ export const useAlbums = () => {
         retryCount: s.retryCount + 1,
       }));
     } finally {
-      if (!cancelled.current) {
+      if (!controller.signal.aborted && mountedRef.current) {
         setState(s => ({ ...s, loading: false, refreshing: false }));
       }
     }
   }, []);
 
   useEffect(() => {
-    cancelled.current = false;
     loadAlbums();
     return () => {
-      cancelled.current = true;
+      abortController.current?.abort();
       if (retryTimeout.current) clearTimeout(retryTimeout.current);
     };
   }, [loadAlbums]);
@@ -105,15 +112,11 @@ export const useAlbums = () => {
     }
 
     retryTimeout.current = setTimeout(() => {
-      loadAlbums(false);
+      if (mountedRef.current) {
+        loadAlbums(false);
+      }
     }, 1000 * state.retryCount);
   }, [state.retryCount, loadAlbums]);
-
-  const loadMore = useCallback(() => {
-    if (!state.loading && hasMore.current) {
-      loadAlbums(false);
-    }
-  }, [state.loading, loadAlbums]);
 
   const refreshAlbums = useCallback(() => {
     loadAlbums(true);
@@ -125,7 +128,6 @@ export const useAlbums = () => {
     error: state.error,
     refreshing: state.refreshing,
     retryCount: state.retryCount,
-    loadMore,
     refreshAlbums,
     retryLoad,
   };

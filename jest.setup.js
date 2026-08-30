@@ -211,6 +211,7 @@ jest.mock('@shopify/flash-list', () => {
     ListEmptyComponent,
     ListHeaderComponent,
     ListFooterComponent,
+    refreshControl,
   }) => {
     if (!data || data.length === 0) {
       if (ListHeaderComponent) {
@@ -228,6 +229,9 @@ jest.mock('@shopify/flash-list', () => {
     if (ListHeaderComponent) {
       const Header = typeof ListHeaderComponent === 'function' ? ListHeaderComponent : null;
       if (Header) children.push(React.createElement(Header, { key: 'header' }));
+    }
+    if (refreshControl) {
+      children.push(React.cloneElement(refreshControl, { key: 'refresh-control' }));
     }
     data.forEach((item, index) => {
       children.push(renderListChild(renderItem, item, index, keyExtractor));

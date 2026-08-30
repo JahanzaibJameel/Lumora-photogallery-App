@@ -1,5 +1,5 @@
 import { useNavigation } from '@react-navigation/native';
-import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import type { StackNavigationProp } from '@react-navigation/stack';
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   ScrollView,
@@ -14,7 +14,7 @@ import { useTheme } from '../hooks/useTheme';
 import { RootStackParamList } from '../types/navigation';
 import { AggregatedMetrics, PerformanceConfig, PerformanceStats } from '../types/performance';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList>;
+type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface MetricCardProps {
   title: string;

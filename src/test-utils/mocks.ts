@@ -6,6 +6,7 @@ export interface MockMediaService {
   getAssetInfo: jest.Mock;
   deletePhoto: jest.Mock;
   clearCache: jest.Mock;
+  invalidateAlbum: jest.Mock;
   getAlbumThumbnail: jest.Mock;
 }
 
@@ -17,6 +18,7 @@ export const makeMockMediaService = (): MockMediaService => ({
   getAssetInfo: jest.fn(),
   deletePhoto: jest.fn(),
   clearCache: jest.fn(),
+  invalidateAlbum: jest.fn(),
   getAlbumThumbnail: jest.fn(),
 });
 

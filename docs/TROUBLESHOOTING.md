@@ -42,7 +42,7 @@ Press `i` / `a` / `w` in the terminal dev menu, or run `npm run ios` / `android`
 
 ### Suite is slow
 
-The integration test (`__tests__/App.test.tsx`) mounts the full tree. Component/hook tests are fast; run `npm run test:coverage` to get a single number. Typical full run ≈ 20–25 s.
+The integration test (`__tests__/App.test.tsx`) mounts the full tree. Component/hook tests are fast; run `npm run test:coverage` to get a single number. Typical full run ≈ 40–45 s.
 
 ### Retry tests need fake timers
 
@@ -54,9 +54,9 @@ The integration test (`__tests__/App.test.tsx`) mounts the full tree. Component/
 
 ## Lint / type errors
 
-### `npm run lint` reports 32 warnings
+### `npm run lint` reports 41 warnings
 
-These are all in `*.test.*` files (`no-explicit-any`, unused directives/aliases). They are **warnings, not errors** — `expo lint` passes. Address them incrementally; see tech debt in [docs/PROJECT_STATUS.md](./PROJECT_STATUS.md).
+These are mostly in `*.test.*` files (`no-explicit-any`, unused directives/aliases), plus a few in source files (`usePhotos.ts` unused `signal` parameter, `di.tsx` unused `useRef`, `media.service.performance.test.ts` import order). They are **warnings, not errors** — `expo lint` passes. Address them incrementally; see tech debt in [docs/PROJECT_STATUS.md](./PROJECT_STATUS.md).
 
 ### `type-check` fails only in tests
 

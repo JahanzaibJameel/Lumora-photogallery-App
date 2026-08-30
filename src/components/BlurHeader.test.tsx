@@ -5,64 +5,22 @@ import BlurHeader from './BlurHeader';
 
 const mockNavigate = jest.fn();
 const mockGoBack = jest.fn();
-const mockNavigation = {
-  navigate: mockNavigate,
-  dispatch: jest.fn(),
-  goBack: mockGoBack,
-  canGoBack: () => false,
-  isFocused: () => true,
-  setParams: jest.fn(),
-  getState: () => ({ key: 'root', index: 0, routes: [] }),
-  dangerouslyGetState: () => ({ key: 'root', index: 0, routes: [] }),
-  addListener: () => ({ remove: () => {} }),
-};
 
-jest.mock('@react-navigation/native', () => {
-  const React = require('react');
-  return {
-    __esModule: true,
-    NavigationContainer: ({ children }: { children: React.ReactNode }) =>
-      React.createElement(React.Fragment, null, children),
-    useNavigation: () => mockNavigation,
-    useRoute: () => ({ key: 'route-key', name: 'Albums', params: {} }),
-    useFocusEffect: () => {},
-    useIsFocused: () => true,
-    NavigationContext: {},
-    ThemeContext: {
-      _currentValue: {
-        colors: {
-          primary: '#007bff',
-          background: '#f8f9fa',
-          card: '#ffffff',
-          text: '#333333',
-          border: '#e0e0e0',
-          notification: '#007bff',
-          destructive: '#dc3545',
-        },
-        dark: false,
-        fonts: {
-          regular: { fontFamily: 'System', fontWeight: '400' },
-          medium: { fontFamily: 'System', fontWeight: '500' },
-          bold: { fontFamily: 'System', fontWeight: '700' },
-          heavy: { fontFamily: 'System', fontWeight: '800' },
-        },
-        search: '#000',
-      },
-    },
-    DefaultTheme: {
-      colors: {
-        primary: '#007bff',
-        background: '#f8f9fa',
-        card: '#ffffff',
-        text: '#333333',
-        border: '#e0e0e0',
-        notification: '#007bff',
-      },
-      dark: false,
-      fonts: { regular: {}, medium: {}, bold: {} },
-    },
-  };
-});
+jest.mock('@react-navigation/native', () => ({
+  __esModule: true,
+  useNavigation: () => ({
+    navigate: mockNavigate,
+    goBack: mockGoBack,
+    dispatch: jest.fn(),
+    canGoBack: () => false,
+    isFocused: () => true,
+    setParams: jest.fn(),
+    getState: () => ({ key: 'root', index: 0, routes: [] }),
+    dangerouslyGetState: () => ({ key: 'root', index: 0, routes: [] }),
+    addListener: () => ({ remove: () => {} }),
+  }),
+  useRoute: () => ({ key: 'route-key', name: 'Albums', params: {} }),
+}));
 
 describe('BlurHeader', () => {
   beforeEach(() => {

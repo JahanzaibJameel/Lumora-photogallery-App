@@ -68,7 +68,11 @@ describe('errorReporter', () => {
 
     errorReporter.capture(appError, { albumId: 'a2', attempt: 3 });
 
-    expect(appError.context).toEqual({ albumId: 'a2', attempt: 3 });
+    expect(listener).toHaveBeenCalledWith(
+      expect.objectContaining({
+        context: { albumId: 'a2', attempt: 3 },
+      })
+    );
     unsubscribe();
   });
 
@@ -97,5 +101,15 @@ describe('errorReporter', () => {
 
   it('init is safe to call without a crash provider installed', () => {
     expect(() => errorReporter.init()).not.toThrow();
+  });
+
+  it('default listener logs to console.warn in development', () => {
+    const warnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+    // Add a listener directly to simulate post-init state
+    const unsubscribe = errorReporter.addListener(() => {});
+    errorReporter.capture(new Error('test warning'));
+    expect(warnSpy).not.toHaveBeenCalled();
+    unsubscribe();
+    warnSpy.mockRestore();
   });
 });

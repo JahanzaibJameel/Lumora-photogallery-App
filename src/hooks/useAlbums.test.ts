@@ -48,43 +48,19 @@ describe('useAlbums', () => {
     expect(result.current.albums).toEqual([]);
   });
 
-  it('loads more albums on loadMore', async () => {
-    const firstBatch = makeFullBatch(1, 20);
-    const secondBatch = [makeAlbum('a21'), makeAlbum('a22')];
-
-    mockMediaService.getAlbums
-      .mockResolvedValueOnce(firstBatch)
-      .mockResolvedValueOnce(secondBatch);
+  it('fetches all albums at once', async () => {
+    const albums = makeFullBatch(1, 5);
+    mockMediaService.getAlbums.mockResolvedValue(albums);
 
     const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.albums).toHaveLength(20));
+    await waitFor(() => expect(result.current.albums).toHaveLength(5));
 
-    mockMediaService.getAlbums.mockResolvedValue(secondBatch);
-
-    await act(async () => {
-      result.current.loadMore();
-    });
-
-    await waitFor(() => expect(result.current.albums).toHaveLength(22));
-    expect(result.current.albums[20].id).toBe('a21');
-  });
-
-  it('stops loading more when fewer than BATCH_SIZE returned', async () => {
-    mockMediaService.getAlbums.mockResolvedValue([makeAlbum('a1')]);
-
-    const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.albums).toHaveLength(1));
-
-    await act(async () => {
-      result.current.loadMore();
-    });
-
-    // hasMore is false because batch size was < 20
+    // All albums are fetched in a single call
     expect(mockMediaService.getAlbums).toHaveBeenCalledTimes(1);
   });
 
   it('refreshes albums on refreshAlbums', async () => {
-    const original = makeFullBatch(1, 20);
+    const original = makeFullBatch(1, 5);
     const refreshed = [makeAlbum('new-1')];
 
     mockMediaService.getAlbums
@@ -92,9 +68,7 @@ describe('useAlbums', () => {
       .mockResolvedValueOnce(refreshed);
 
     const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.albums).toHaveLength(20));
-
-    mockMediaService.getAlbums.mockResolvedValue(refreshed);
+    await waitFor(() => expect(result.current.albums).toHaveLength(5));
 
     await act(async () => {
       result.current.refreshAlbums();
@@ -103,26 +77,6 @@ describe('useAlbums', () => {
     await waitFor(() => expect(result.current.albums).toHaveLength(1));
     expect(result.current.albums[0].id).toBe('new-1');
     expect(result.current.refreshing).toBe(false);
-  });
-
-  it('deduplicates albums by id', async () => {
-    const firstBatch = makeFullBatch(1, 20);
-    const secondBatch = [makeAlbum('a1'), makeAlbum('a21')];
-
-    mockMediaService.getAlbums
-      .mockResolvedValueOnce(firstBatch)
-      .mockResolvedValueOnce(secondBatch);
-
-    const { result } = renderHook(() => useAlbums());
-    await waitFor(() => expect(result.current.albums).toHaveLength(20));
-
-    await act(async () => {
-      result.current.loadMore();
-    });
-
-    await waitFor(() => expect(result.current.albums).toHaveLength(21));
-    const ids = result.current.albums.map((a) => a.id);
-    expect(new Set(ids).size).toBe(ids.length);
   });
 });
 

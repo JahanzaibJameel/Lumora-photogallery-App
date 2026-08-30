@@ -1,4 +1,5 @@
 import React from 'react';
+import { StyleSheet } from 'react-native';
 import { IconButton } from '../components/primitives/IconButton';
 import { SearchBar } from '../components/primitives/SearchBar';
 import { Text } from '../components/primitives/Text';
@@ -54,12 +55,13 @@ describe('Accessibility Tests', () => {
     });
 
     it('has minimum 48x48 touch target', () => {
-      const { toJSON } = renderWithProviders(
+      const { getByLabelText } = renderWithProviders(
         <IconButton name="search" accessibilityLabel="Search" />
       );
-      const tree = toJSON();
-      // IconButton container should be 48x48
-      expect(tree).toBeTruthy();
+      const element = getByLabelText('Search');
+      const flattenedStyle = StyleSheet.flatten(element.props.style);
+      expect(flattenedStyle.width).toBeGreaterThanOrEqual(48);
+      expect(flattenedStyle.height).toBeGreaterThanOrEqual(48);
     });
   });
 

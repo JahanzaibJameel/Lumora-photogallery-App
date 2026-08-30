@@ -67,14 +67,14 @@ Hooks own all data-fetching, pagination, retry, and mutation state.
 
 | Hook | Responsibility |
 | :--- | :--- |
-| `useAlbums` | Batch size 20, offset pagination with id-dedupe merge, `refreshAlbums`, `loadMore`, `retryLoad` (linear backoff `1000ms × retryCount`, capped at `MAX_RETRIES = 2` → `MAX_RETRIES_EXCEEDED`) |
+| `useAlbums` | Fetches all albums at once (`getAlbums(0, 200)`), `refreshAlbums`, `retryLoad` (linear backoff `1000ms × retryCount`, capped at `MAX_RETRIES = 2` → `MAX_RETRIES_EXCEEDED`); `loadMore` is a no-op retained for API compatibility |
 | `usePhotos(albumId)` | Batch size 30 cursor pagination, `deletePhoto`, refresh clears `MediaService` cache; same retry shape as `useAlbums` |
 | `usePermission` | `undetermined` / `granted` / `denied` / `blocked`; re-checks on `AppState` resume; `openSettings` via `Linking` |
 | `useSearch` | `useSearchHistory` (record/clear against MMKV, capped at 20, deduplicated) + `useDebouncedValue` (default 300 ms) |
 | `useAlbumThumbnail` | Bridges `MediaService.getAlbumThumbnail` into component state with a cancellation guard |
 | `useTheme` / `useReducedMotion`(+`useReduceMotionMode`) | Context accessors with safe fallbacks |
 | `useAccessibility` | `getButtonProps`/`getInputProps`/`enforceTouchTarget` (48 pt) + shared hint map |
-| `useWidgetConfig` | Default three-widget config (daily memory / random photo / favorites); `toggle`/`update`/`add`/`remove` — **state-only, not persisted** |
+| `useWidgetConfig` | Default three-widget config (daily memory / random photo / favorites); `toggle`/`update`/`add`/`remove` — **persisted to MMKV** via `StorageKeys.WIDGET_CONFIGS` |
 | `useWidgetData` | Per-type fetch switch, `refreshAllWidgets` parallelizes enabled widgets via `Promise.all` |
 | `useWidgets` | Composes config + data; hourly `REFRESH_INTERVAL` while mounted |
 
@@ -119,7 +119,7 @@ Singleton accessed via `getMediaService()` / `MediaService.getInstance()`. **Web
 
 Synchronous MMKV wrapper (instance id `lumora-storage`). `get<T>` returns `null` on missing key **and** on `JSON.parse` failure (no silent corruption). `save` is synchronous — wrapping it in a promise would be misleading.
 
-`StorageKeys` registry: `THEMES`, `FAVORITES`, `WIDGET_PREFIX`, `SEARCH_HISTORY`, `REDUCED_MOTION`. Search-history helpers (`add`/`clear`/`get`) live here.
+`StorageKeys` registry: `THEMES`, `FAVORITES`, `WIDGET_PREFIX`, `WIDGET_CONFIGS`, `SEARCH_HISTORY`, `REDUCED_MOTION`, `GRID_SIZE`, `PERFORMANCE_CONFIG`, `PERFORMANCE_METRICS`, `PERFORMANCE_AGGREGATED`. Search-history helpers (`add`/`clear`/`get`) live here.
 
 ### WidgetService (`widget.service.ts`)
 

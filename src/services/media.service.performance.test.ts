@@ -1,6 +1,6 @@
-import { MediaService } from './media.service';
 import { makeMockPerformanceMonitoringService } from '../test-utils/mocks';
 import { ServiceTokens, registerService, clearServices } from './di';
+import { MediaService } from './media.service';
 import { IPerformanceMonitoringService } from './performance.service';
 
 describe('MediaService performance integration', () => {

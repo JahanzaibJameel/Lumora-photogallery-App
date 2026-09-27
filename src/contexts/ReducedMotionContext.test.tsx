@@ -2,7 +2,9 @@ import { render, renderHook, act } from '@testing-library/react-native';
 import React from 'react';
 import { ServiceTokens, registerService, clearServices } from '../services/di';
 import { StorageKeys } from '../services/storage.service';
-import { ReducedMotionProvider, useReducedMotionContext } from './ReducedMotionContext';
+import { ReducedMotionProvider, useReducedMotionContext, ReducedMotionContextType } from './ReducedMotionContext';
+
+type CapturedState = ReducedMotionContextType;
 
 const mockStorage = {
   get: jest.fn(),
@@ -21,9 +23,7 @@ jest.mock('../services/storage.service', () => ({
 
 const mockedStorage = mockStorage;
 
-type CapturedReducedMotionState = ReturnType<typeof useReducedMotionContext>;
-
-const TestConsumer = ({ onState }: { onState: (state: { reduceMotion: boolean; reduceMotionMode: string; setReduceMotionMode: (mode: 'system' | 'always' | 'never') => void }) => void }) => {
+const TestConsumer = ({ onState }: { onState: (state: ReducedMotionContextType) => void }) => {
   const state = useReducedMotionContext();
   onState({
     reduceMotion: state.reduceMotion,
@@ -42,7 +42,7 @@ describe('ReducedMotionProvider', () => {
   });
 
   it('provides default reduceMotion false and mode system when no saved preference', () => {
-    const captured: any[] = [];
+    const captured: CapturedState[] = [];
     render(
       <ReducedMotionProvider>
         <TestConsumer onState={(state) => captured.push(state)} />
@@ -55,7 +55,7 @@ describe('ReducedMotionProvider', () => {
   it('loads saved reduceMotion mode from storage', () => {
     mockedStorage.get.mockReturnValue('always');
 
-    const captured: any[] = [];
+    const captured: CapturedState[] = [];
     render(
       <ReducedMotionProvider>
         <TestConsumer onState={(state) => captured.push(state)} />
@@ -68,7 +68,7 @@ describe('ReducedMotionProvider', () => {
   });
 
   it('persists mode change to storage', () => {
-    const captured: any[] = [];
+    const captured: CapturedState[] = [];
     let setMode: (mode: 'system' | 'always' | 'never') => void;
 
     render(

@@ -1,13 +1,11 @@
-const { View, Text, ScrollView, Image } = require('react-native');
-
 // ----------------------------------------------------------------------------
 // react-native-reanimated
 // ----------------------------------------------------------------------------
 jest.mock('react-native-reanimated', () => {
-const { View, Text, ScrollView, Image } = require('react-native');
+  const { View, Text, ScrollView, Image } = require('react-native');
 
-global.window = global.window || {};
-global.window.dispatchEvent = global.window.dispatchEvent || (() => {});
+  global.window = global.window || {};
+  global.window.dispatchEvent = global.window.dispatchEvent || (() => {});
   const ID = (v) => v;
   const NOOP = () => undefined;
   const NOOP_FACTORY = () => () => undefined;

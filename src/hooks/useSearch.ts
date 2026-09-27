@@ -9,6 +9,7 @@ export interface UseSearchHistoryReturn {
   history: string[];
   recordQuery: (query: string) => void;
   clear: () => void;
+  clearHistory: () => void;
 }
 
 export const useSearchHistory = (): UseSearchHistoryReturn => {
@@ -23,12 +24,17 @@ export const useSearchHistory = (): UseSearchHistoryReturn => {
     setHistory(getSearchHistory());
   }, []);
 
+  const clearHistory = useCallback(() => {
+    clearSearchHistory();
+    setHistory([]);
+  }, []);
+
   const clear = useCallback(() => {
     clearSearchHistory();
     setHistory([]);
   }, []);
 
-  return { history, recordQuery, clear };
+  return { history, recordQuery, clear, clearHistory };
 };
 
 export const useDebouncedValue = <T>(value: T, delay = 300): T => {

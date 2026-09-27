@@ -146,6 +146,7 @@ describe('PerformanceMonitoringService', () => {
         durationMs: 200,
         coldStart: true,
       });
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
   });
 
@@ -183,6 +184,7 @@ describe('PerformanceMonitoringService', () => {
         durationMs: 50,
         fromCache: true,
       });
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
   });
 
@@ -194,6 +196,7 @@ describe('PerformanceMonitoringService', () => {
         itemCount: 10,
         renderDurationMs: 16,
       });
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
   });
 
@@ -204,6 +207,7 @@ describe('PerformanceMonitoringService', () => {
         usedJSHeapSize: 1000000,
         totalJSHeapSize: 2000000,
       });
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
   });
 
@@ -211,11 +215,13 @@ describe('PerformanceMonitoringService', () => {
     it('accumulates cache stats', () => {
       service.recordCacheHitRate('albums', 8, 2);
       service.recordCacheHitRate('albums', 7, 3);
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
 
     it('does not record when trackCacheHitRates is disabled', () => {
       service.updateConfig({ trackCacheHitRates: false });
       service.recordCacheHitRate('albums', 8, 2);
+      expect(service.getRecentMetrics()).toHaveLength(0);
     });
   });
 

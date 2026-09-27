@@ -14,6 +14,7 @@ describe('StorageKeys', () => {
     expect(StorageKeys.REDUCED_MOTION).toBe('lumora_reduced_motion');
     expect(StorageKeys.WIDGET_PREFIX).toBe('lumora_widget_');
     expect(StorageKeys.WIDGET_CONFIGS).toBe('lumora_widget_configs');
+    expect(StorageKeys.GRID_SIZE).toBe('lumora_grid_size');
   });
 });
 

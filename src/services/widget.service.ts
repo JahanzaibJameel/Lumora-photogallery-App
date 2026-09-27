@@ -191,15 +191,16 @@ async getDailyMemory(): Promise<WidgetData> {
 
     const allPhotos: Photo[] = results.flatMap(result => result.photos);
 
-    // Fisher-Yates: sort-by-random produces a biased distribution that
-    // over-represents early entries, which matters when picking a single
-    // "featured" photo.
+    // Partial Fisher-Yates shuffle: select 'count' random photos without bias.
+// Cap count to available photos and iterate count times, swapping each position
+// with a random later element.
     const shuffled = [...allPhotos];
-    for (let i = shuffled.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    const actualCount = Math.min(count, shuffled.length);
+    for (let i = 0; i < actualCount; i++) {
+      const randomIdx = i + Math.floor(Math.random() * (shuffled.length - i));
+      [shuffled[i], shuffled[randomIdx]] = [shuffled[randomIdx], shuffled[i]];
     }
-    const selected = shuffled.slice(0, count);
+    const selected = shuffled.slice(0, actualCount);
 
     const widgetData: WidgetData = {
       type: 'random_photo',

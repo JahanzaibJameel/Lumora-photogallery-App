@@ -81,10 +81,11 @@ export const getStorageService = (): IStorageService => resolveService<IStorageS
 
 export const addSearchHistory = (query: string): void => {
   const history = getSearchHistory();
-  if (!history.includes(query)) {
-    const newHistory = [query, ...history].slice(0, 20);
-    getStorageService().save(StorageKeys.SEARCH_HISTORY, newHistory);
-  }
+  const filtered = history.filter((q) => q !== query);
+  const updated = [query, ...filtered];
+  // Cap at 50 entries to prevent unbounded growth
+  const capped = updated.slice(0, 20);
+  getStorageService().save(StorageKeys.SEARCH_HISTORY, capped);
 };
 
 export const clearSearchHistory = (): void => {
@@ -93,5 +94,6 @@ export const clearSearchHistory = (): void => {
 
 export const getSearchHistory = (): string[] => {
   const history = getStorageService().get<string[]>(StorageKeys.SEARCH_HISTORY);
-  return history || [];
+  // Cap history at 50 entries to prevent unbounded growth
+  return (history || []).slice(0, 50);
 };

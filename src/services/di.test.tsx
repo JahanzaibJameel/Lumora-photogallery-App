@@ -1,6 +1,6 @@
-import { ServiceTokens, resolveService, registerService, clearServices, ServiceProvider, useService } from './di';
-import React from 'react';
 import { renderHook } from '@testing-library/react-native';
+import React from 'react';
+import { ServiceTokens, resolveService, registerService, clearServices, ServiceProvider, useService } from './di';
 
 describe('di', () => {
   beforeEach(() => {
@@ -26,7 +26,7 @@ describe('di', () => {
   it('ServiceProvider provides services via context', () => {
     const testService = { test: true };
     const wrapper = ({ children }: { children: React.ReactNode }) => (
-      <ServiceProvider services={{ [ServiceTokens.MediaService]: testService } as any}>
+      <ServiceProvider services={{ [ServiceTokens.MediaService]: testService }}>
         {children}
       </ServiceProvider>
     );

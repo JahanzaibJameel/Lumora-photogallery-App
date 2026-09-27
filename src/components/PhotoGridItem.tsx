@@ -34,26 +34,21 @@ const PhotoGridItem: React.FC<PhotoGridItemProps> = memo(({
 }) => {
   const { colors } = useTheme();
   const reduceMotion = useReducedMotion();
-  const entrancePlayedFor = useRef<Set<string>>(new Set());
-  // Prevent the Set from growing unbounded in large galleries: cap it and reset
-  // when the photo list changes (the animation only runs on first mount anyway).
-  const maxEntranceCacheSize = 200;
-  if (entrancePlayedFor.current.size > maxEntranceCacheSize) {
-    entrancePlayedFor.current.clear();
-  }
+  // Track animation playback per photo to prevent re-animation on re-renders
+  const hasPlayedEntrance = useRef(false);
   const scale = useSharedValue(1);
-  const opacity = useSharedValue(reduceMotion || entrancePlayedFor.current.has(photo.id) ? 1 : 0);
-  const translateY = useSharedValue(reduceMotion || entrancePlayedFor.current.has(photo.id) ? 0 : 20);
+  const opacity = useSharedValue(reduceMotion || hasPlayedEntrance.current ? 1 : 0);
+  const translateY = useSharedValue(reduceMotion || hasPlayedEntrance.current ? 0 : 20);
 
   useEffect(() => {
-    if (reduceMotion || entrancePlayedFor.current.has(photo.id)) {
+    if (reduceMotion || hasPlayedEntrance.current) {
       opacity.value = 1;
       translateY.value = 0;
       return;
     }
     opacity.value = withDelay(index * 30, withSpring(1, { damping: 20 }));
     translateY.value = withDelay(index * 30, withSpring(0, { damping: 20 }));
-    entrancePlayedFor.current.add(photo.id);
+    hasPlayedEntrance.current = true;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [photo.id, index, reduceMotion]);
 

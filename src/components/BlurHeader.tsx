@@ -28,6 +28,9 @@ interface BlurHeaderProps {
   showPerformance?: boolean;
   onSearchChange?: (text: string) => void;
   scrollY?: SharedValue<number>;
+  searchHistory?: string[];
+  onSelectSearchHistory?: (query: string) => void;
+  onClearSearchHistory?: () => void;
 }
 
 const BlurHeader: React.FC<BlurHeaderProps> = memo(
@@ -39,6 +42,9 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
     showPerformance = false,
     onSearchChange,
     scrollY,
+    searchHistory = [],
+    onSelectSearchHistory,
+    onClearSearchHistory,
   }) => {
     const navigation = useNavigation<StackNavigationProp<RootStackParamList>>();
     const { isDark } = useTheme();
@@ -118,6 +124,14 @@ const BlurHeader: React.FC<BlurHeaderProps> = memo(
                         setSearchText(text);
                         onSearchChange?.(text);
                       }}
+                      onSelectHistory={(query) => {
+                        setSearchText(query);
+                        onSearchChange?.(query);
+                        onSelectSearchHistory?.(query);
+                      }}
+                      onClearHistory={onClearSearchHistory}
+                      searchHistory={searchHistory}
+                      showHistory={true}
                       accessibilityLabel="Search photos"
                       style={{ flex: 1 }}
                     />

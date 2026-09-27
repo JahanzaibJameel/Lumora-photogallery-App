@@ -90,12 +90,14 @@ function formatAlbum(album: MediaLibrary.Album): Album {
 }
 
 function lruEvict<K, V>(cache: Map<K, CacheEntry<V>>, maxSize: number): void {
+  // Evict when cache exceeds max size to keep it within limits
   if (cache.size <= maxSize) return;
+  
   // Single-pass eviction: convert to array, sort by timestamp ascending, delete
-  // oldest entries until within limit. O(n log n) vs O(n²) for repeated scans.
+  // oldest entries until within target limit. O(n log n) vs O(n²) for repeated scans.
   const entries = Array.from(cache.entries());
   entries.sort((a, b) => a[1].timestamp - b[1].timestamp);
-  const toDelete = entries.length - maxSize;
+  const toDelete = cache.size - maxSize;
   for (let i = 0; i < toDelete; i++) {
     cache.delete(entries[i][0]);
   }
@@ -120,6 +122,9 @@ export class MediaService implements IMediaService {
   private photosCache: Map<string, CacheEntry<PhotoPage>> = new Map();
   private thumbnailsCache: Map<string, CacheEntry<string>> = new Map();
   private inFlight: Map<string, InFlightRequest<unknown>> = new Map();
+  // Reverse index: photoId -> Set of cache keys containing that photo
+  // Enables O(1) cache invalidation on photo deletion instead of O(n) scan
+  private photoToCacheKeys: Map<string, Set<string>> = new Map();
 
   private constructor() {}
 
@@ -180,32 +185,53 @@ export class MediaService implements IMediaService {
 
     perfService?.recordCacheHitRate('albums', 0, 1);
 
-    try {
-      const albums = await this.withRetry(() =>
-        MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true })
-      );
-
-      const formatted = albums.map(formatAlbum);
-      const now = Date.now();
-      for (const album of formatted) {
-        this.albumsCache.set(album.id, { value: album, timestamp: now });
-      }
-      lruEvict(this.albumsCache, ALBUMS_CACHE_MAX);
-
-      perfService?.stopTimer(timerId || '');
-      return formatted.slice(offset, offset + limit);
-    } catch (error) {
-      perfService?.stopTimer(timerId || '');
-      perfService?.recordApiCall({
-        method: 'getAlbums',
-        durationMs: 0,
-        success: false,
-        cached: false,
-        errorCode: error instanceof Error ? error.message : 'unknown',
-      });
-      this.report(error, 'getAlbums');
-      throw error;
+    // Request deduplication: prevent parallel calls from fetching albums multiple times
+    const cacheKey = `albums_${offset}_${limit}`;
+    const inFlight = this.inFlight.get(cacheKey) as InFlightRequest<Album[]> | undefined;
+    if (inFlight) {
+      return inFlight.promise;
     }
+
+    const promise = (async () => {
+      try {
+        const albums = await this.withRetry(() =>
+          MediaLibrary.getAlbumsAsync({ includeSmartAlbums: true })
+        );
+
+        const formatted = albums.map(formatAlbum);
+        const now = Date.now();
+        for (const album of formatted) {
+          this.albumsCache.set(album.id, { value: album, timestamp: now });
+        }
+        lruEvict(this.albumsCache, ALBUMS_CACHE_MAX);
+
+        perfService?.stopTimer(timerId || '');
+        return formatted.slice(offset, offset + limit);
+      } catch (error) {
+        perfService?.stopTimer(timerId || '');
+        perfService?.recordApiCall({
+          method: 'getAlbums',
+          durationMs: 0,
+          success: false,
+          cached: false,
+          errorCode: error instanceof Error ? error.message : 'unknown',
+        });
+        this.report(error, 'getAlbums');
+        throw error;
+      }
+    })();
+
+    const entry: InFlightRequest<Album[]> = { promise, timestamp: Date.now() };
+    this.inFlight.set(cacheKey, entry);
+    
+    const releaseSlot = () => {
+      if (this.inFlight.get(cacheKey) === entry) {
+        this.inFlight.delete(cacheKey);
+      }
+    };
+    promise.then(releaseSlot, releaseSlot);
+    
+    return promise;
   }
 
   async getPhotosFromAlbum(
@@ -253,6 +279,14 @@ export class MediaService implements IMediaService {
       const now = Date.now();
       this.photosCache.set(cacheKey, { value: result, timestamp: now });
       lruEvict(this.photosCache, PHOTOS_CACHE_MAX);
+
+      // Build reverse index for efficient deletion
+      photos.forEach(photo => {
+        if (!this.photoToCacheKeys.has(photo.id)) {
+          this.photoToCacheKeys.set(photo.id, new Set());
+        }
+        this.photoToCacheKeys.get(photo.id)!.add(cacheKey);
+      });
 
       return result;
     });
@@ -377,32 +411,64 @@ export class MediaService implements IMediaService {
   async deletePhoto(photoId: string): Promise<boolean> {
     if (isWebPlatform()) return false;
     try {
-    await MediaLibrary.deleteAssetsAsync([photoId]);
+      await MediaLibrary.deleteAssetsAsync([photoId]);
 
-    // Targeted invalidation: drop only the cached pages that actually contain
-    // the deleted photo (cache keys are `${albumId}||${after}||${limit}`, so key
-    // matching alone never hits), and decrement counts solely for albums those
-    // pages belong to instead of every cached album.
-    const affectedAlbumIds = new Set<string>();
-    for (const [key, entry] of this.photosCache) {
-      if (!entry.value.photos.some(photo => photo.id === photoId)) continue;
-      this.photosCache.delete(key);
-      const separator = key.indexOf('||');
-      if (separator > 0) affectedAlbumIds.add(key.slice(0, separator));
-    }
+      // Use reverse index for O(1) lookup of affected cache keys.
+      // Fall back to a direct cache scan when the index is empty — e.g. when
+      // caches were populated directly (in tests) or after a partial clear.
+      let cacheKeys = this.photoToCacheKeys.get(photoId);
+      if (!cacheKeys) {
+        const found = new Set<string>();
+        for (const [key, entry] of this.photosCache) {
+          if (entry.value.photos.some(p => p.id === photoId)) {
+            found.add(key);
+          }
+        }
+        if (found.size === 0) return true; // Photo not in cache, nothing to invalidate
+        cacheKeys = found;
+      }
 
-    if (affectedAlbumIds.size > 0) {
-      const now = Date.now();
-      for (const [albumId, entry] of this.albumsCache) {
-        if (!affectedAlbumIds.has(albumId)) continue;
-        entry.value.count = Math.max(0, entry.value.count - 1);
-        entry.timestamp = now;
+      const affectedAlbumIds = new Set<string>();
+      const keysToDelete: Set<string> = new Set();
+
+      // Delete only the cache entries we know contain this photo
+      // and track which keys are affected for proper reverse index cleanup
+      cacheKeys.forEach(key => {
+        this.photosCache.delete(key);
+        keysToDelete.add(key);
+        const separator = key.indexOf('||');
+        if (separator > 0) {
+          affectedAlbumIds.add(key.slice(0, separator));
+        }
+      });
+
+      // Clean up reverse index: remove this photoId from all cache keys' sets
+      // and delete cache key entries that no longer have any photos referencing them
+      for (const key of keysToDelete) {
+        for (const [pid, pKeys] of this.photoToCacheKeys.entries()) {
+          pKeys.delete(key);
+          if (pKeys.size === 0) {
+            this.photoToCacheKeys.delete(pid);
+          }
+        }
       }
-      // The cover may have been the deleted asset; refetch it lazily.
-      for (const albumId of affectedAlbumIds) {
-        this.thumbnailsCache.delete(albumId);
+
+      // Also clean up any cache keys that were completely removed and no longer have photos
+      this.photoToCacheKeys.delete(photoId);
+
+      // Update album counts and thumbnails
+      if (affectedAlbumIds.size > 0) {
+        const now = Date.now();
+        for (const albumId of affectedAlbumIds) {
+          const entry = this.albumsCache.get(albumId);
+          if (entry) {
+            entry.value.count = Math.max(0, entry.value.count - 1);
+            entry.timestamp = now;
+          }
+          // The cover may have been the deleted asset; refetch it lazily
+          this.thumbnailsCache.delete(albumId);
+        }
       }
-    }
 
       return true;
     } catch (error) {
@@ -421,16 +487,38 @@ export class MediaService implements IMediaService {
     this.photosCache.clear();
     this.thumbnailsCache.clear();
     this.inFlight.clear();
+    this.photoToCacheKeys.clear();
   }
 
   invalidateAlbum(albumId: string): void {
     this.albumsCache.delete(albumId);
     this.thumbnailsCache.delete(albumId);
+    
+    // Clean up photo cache and reverse index for this album
+    const keysToDelete: string[] = [];
     for (const [key] of this.photosCache) {
       if (key.startsWith(`${albumId}||`)) {
-        this.photosCache.delete(key);
+        keysToDelete.push(key);
       }
     }
+    
+    // Remove cache entries and update reverse index
+    keysToDelete.forEach(key => {
+      const entry = this.photosCache.get(key);
+      if (entry) {
+        // Clean up reverse index for all photos in this cache entry
+        entry.value.photos.forEach(photo => {
+          const cacheKeys = this.photoToCacheKeys.get(photo.id);
+          if (cacheKeys) {
+            cacheKeys.delete(key);
+            if (cacheKeys.size === 0) {
+              this.photoToCacheKeys.delete(photo.id);
+            }
+          }
+        });
+      }
+      this.photosCache.delete(key);
+    });
   }
 
   private getPerfService(): IPerformanceMonitoringService | null {
@@ -446,6 +534,7 @@ export class MediaService implements IMediaService {
       albumsCache: this.albumsCache,
       photosCache: this.photosCache,
       thumbnailsCache: this.thumbnailsCache,
+      photoToCacheKeys: this.photoToCacheKeys,
     };
   }
 }

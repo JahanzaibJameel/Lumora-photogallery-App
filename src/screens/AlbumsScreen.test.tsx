@@ -58,8 +58,8 @@ const renderScreen = (ui: React.ReactElement, mockNavigate?: jest.Mock) => {
 describe('AlbumsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseTheme.mockReturnValue(mockTheme as any);
-    mockedUsePermission.mockReturnValue({ permission: 'granted', isLoading: false } as any);
+    mockedUseTheme.mockReturnValue(mockTheme as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    mockedUsePermission.mockReturnValue({ permission: 'granted', isLoading: false } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
   });
 
   it('renders loading skeletons while loading', () => {
@@ -70,7 +70,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { UNSAFE_getAllByType } = renderScreen(<AlbumsScreen />);
     // Skeletons render as Views; verify the loading state produced content
@@ -86,7 +86,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     expect(getByText('No Albums Found')).toBeTruthy();
@@ -100,7 +100,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     expect(getByText('Connection Issue')).toBeTruthy();
@@ -115,7 +115,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     expect(getByText('Beach')).toBeTruthy();
@@ -132,7 +132,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByLabelText } = renderScreen(<AlbumsScreen />, mockNavigate);
     fireEvent.press(getByLabelText('Open album Beach, 10 photos'));
@@ -147,8 +147,8 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: jest.fn(),
-    } as any);
-    mockedUsePermission.mockReturnValue({ permission: 'denied', isLoading: false } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
+    mockedUsePermission.mockReturnValue({ permission: 'denied', isLoading: false } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     expect(getByText('Access Your Photos')).toBeTruthy();
@@ -163,7 +163,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: jest.fn(),
       retryLoad: mockRetryLoad,
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     fireEvent.press(getByText('Retry'));
@@ -180,7 +180,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: mockRefreshAlbums,
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByLabelText } = renderScreen(<AlbumsScreen />);
     fireEvent.press(getByLabelText('Refresh albums'));
@@ -197,7 +197,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: mockRefreshAlbums,
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { UNSAFE_getByType } = renderScreen(<AlbumsScreen />);
     const refreshControl = UNSAFE_getByType(require('react-native').RefreshControl);
@@ -214,7 +214,7 @@ describe('AlbumsScreen', () => {
       refreshing: false,
       refreshAlbums: mockRefreshAlbums,
       retryLoad: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<AlbumsScreen />);
     fireEvent.press(getByText('Refresh'));

@@ -62,7 +62,7 @@ const PhotosScreen = () => {
   const { gridSize, cycleGridSize } = useGridSize();
   const [searchQuery, setSearchQuery] = useState('');
   const debouncedQuery = useDebouncedValue(searchQuery, 300);
-  const { recordQuery } = useSearchHistory();
+  const { history: searchHistory, recordQuery, clear: clearHistory } = useSearchHistory();
 
   // FlashList uses this estimate to size the scrollbar and pre-render window;
   // deriving it from the actual cell geometry beats hardcoding per-grid guesses.
@@ -182,6 +182,12 @@ const PhotosScreen = () => {
         showBack
         showSearch
         onSearchChange={handleSearchChange}
+        searchHistory={searchHistory}
+        onSelectSearchHistory={(query) => {
+          setSearchQuery(query);
+          recordQuery(query);
+        }}
+        onClearSearchHistory={clearHistory}
       />
 
       <View style={styles.listContainer}>
@@ -209,7 +215,6 @@ const PhotosScreen = () => {
           scrollEventThrottle={16}
           onScroll={scrollHandler}
           removeClippedSubviews={true}
-          key={`grid-${gridSize}`}
         />
       </View>
 

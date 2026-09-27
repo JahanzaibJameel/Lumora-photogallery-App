@@ -51,7 +51,7 @@ describe('useSearchHistory', () => {
     const { result } = renderHook(() => useSearchHistory());
 
     act(() => {
-      result.current.clear();
+      result.current.clearHistory();
     });
 
     expect(mockClearSearchHistory).toHaveBeenCalled();

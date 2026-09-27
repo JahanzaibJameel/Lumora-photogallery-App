@@ -1,5 +1,5 @@
 import { renderHook, act } from '@testing-library/react-native';
-import { getWidgetService } from '../services/widget.service';
+import { getWidgetService, type IWidgetService, type WidgetType } from '../services/widget.service';
 import { errorReporter } from '../utils/errorReporting';
 import { useWidgetData } from './useWidgetData';
 
@@ -29,7 +29,7 @@ const makeWidget = (overrides: Partial<import('../services/widget.service').Widg
 describe('useWidgetData', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetWidgetService.mockReturnValue(mockWidgetService as any);
+    mockGetWidgetService.mockReturnValue(mockWidgetService as unknown as IWidgetService);
     mockWidgetService.getWidgetData.mockReturnValue(null);
     mockWidgetService.getDailyMemory.mockResolvedValue({
       type: 'daily_memory',
@@ -105,7 +105,7 @@ describe('useWidgetData', () => {
     const { result } = renderHook(() => useWidgetData());
 
     await act(async () => {
-      await result.current.refreshWidget(makeWidget({ id: 'w1', type: 'unknown' as any }));
+      await result.current.refreshWidget(makeWidget({ id: 'w1', type: 'unknown' as unknown as WidgetType }));
     });
 
     expect(result.current.widgetData).toEqual({});
@@ -135,7 +135,7 @@ describe('useWidgetData', () => {
 describe('useWidgetData error reporting', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockGetWidgetService.mockReturnValue(mockWidgetService as any);
+    mockGetWidgetService.mockReturnValue(mockWidgetService as unknown as IWidgetService);
     mockWidgetService.getWidgetData.mockReturnValue(null);
   });
 

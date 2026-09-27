@@ -89,4 +89,98 @@ describe('SearchBar', () => {
     );
     expect(ref.current).toBeTruthy();
   });
+
+  describe('Search History', () => {
+    it('does not show history dropdown when showHistory is false', () => {
+      const { queryByLabelText, getByLabelText } = renderWithProviders(
+        <SearchBar
+          value=""
+          onChangeText={jest.fn()}
+          searchHistory={['photo1', 'photo2']}
+          showHistory={false}
+        />
+      );
+      const input = getByLabelText('Search photos');
+      fireEvent(input, 'focus');
+      expect(queryByLabelText('Recent searches')).toBeNull();
+    });
+
+    it('shows history dropdown when focused and empty with history', () => {
+      const { getByLabelText } = renderWithProviders(
+        <SearchBar
+          value=""
+          onChangeText={jest.fn()}
+          searchHistory={['vacation', 'sunset']}
+          showHistory={true}
+        />
+      );
+      const input = getByLabelText('Search photos');
+      fireEvent(input, 'focus');
+      expect(getByLabelText('Recent searches')).toBeTruthy();
+    });
+
+    it('hides history dropdown when value is not empty', () => {
+      const { queryByLabelText } = renderWithProviders(
+        <SearchBar
+          value="test"
+          onChangeText={jest.fn()}
+          searchHistory={['vacation', 'sunset']}
+          showHistory={true}
+        />
+      );
+      expect(queryByLabelText('Recent searches')).toBeNull();
+    });
+
+    it('calls onSelectHistory when history item is selected', () => {
+      const onSelectHistory = jest.fn();
+      const onChangeText = jest.fn();
+      const { getByLabelText, getByText } = renderWithProviders(
+        <SearchBar
+          value=""
+          onChangeText={onChangeText}
+          searchHistory={['vacation']}
+          onSelectHistory={onSelectHistory}
+          showHistory={true}
+        />
+      );
+      const input = getByLabelText('Search photos');
+      fireEvent(input, 'focus');
+      fireEvent.press(getByText('vacation'));
+      expect(onSelectHistory).toHaveBeenCalledWith('vacation');
+      expect(onChangeText).toHaveBeenCalledWith('vacation');
+    });
+
+    it('calls onClearHistory when Clear All is pressed', () => {
+      const onClearHistory = jest.fn();
+      const { getByLabelText, getByText } = renderWithProviders(
+        <SearchBar
+          value=""
+          onChangeText={jest.fn()}
+          searchHistory={['vacation', 'sunset']}
+          onClearHistory={onClearHistory}
+          showHistory={true}
+        />
+      );
+      const input = getByLabelText('Search photos');
+      fireEvent(input, 'focus');
+      fireEvent.press(getByText('Clear All'));
+      expect(onClearHistory).toHaveBeenCalledTimes(1);
+    });
+
+    it('renders multiple history items', () => {
+      const { getByLabelText, getByText } = renderWithProviders(
+        <SearchBar
+          value=""
+          onChangeText={jest.fn()}
+          searchHistory={['vacation', 'sunset', 'beach']}
+          showHistory={true}
+        />
+      );
+      const input = getByLabelText('Search photos');
+      fireEvent(input, 'focus');
+      expect(getByText('vacation')).toBeTruthy();
+      expect(getByText('sunset')).toBeTruthy();
+      expect(getByText('beach')).toBeTruthy();
+    });
+  });
 });

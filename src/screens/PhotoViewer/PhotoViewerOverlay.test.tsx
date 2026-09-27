@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react-native';
-import React from 'react';
+import type { SharedValue } from 'react-native-reanimated';
 import { BackButton, NavArrow, PhotoInfoBadge } from './PhotoViewerOverlay';
 
 const mockUseTheme = jest.fn();
@@ -8,7 +8,6 @@ jest.mock('../../hooks/useTheme', () => ({
 }));
 
 jest.mock('react-native-reanimated', () => {
-  const React = require('react');
   const { View, Text } = require('react-native');
   const Actual = jest.requireActual('react-native-reanimated');
   return {
@@ -20,6 +19,8 @@ jest.mock('react-native-reanimated', () => {
   };
 });
 
+const mockBackOpacity = { value: 1 } as unknown as SharedValue<number>;
+
 describe('PhotoViewerOverlay', () => {
   beforeEach(() => {
     mockUseTheme.mockReturnValue({
@@ -29,21 +30,21 @@ describe('PhotoViewerOverlay', () => {
 
   it('BackButton renders when visible', () => {
     const { getByLabelText } = render(
-      <BackButton onPress={jest.fn()} backOpacity={{ value: 1 } as any} visible />
+      <BackButton onPress={jest.fn()} backOpacity={mockBackOpacity} visible />
     );
     expect(getByLabelText('Close viewer')).toBeTruthy();
   });
 
   it('BackButton returns null when not visible', () => {
     const { queryByLabelText } = render(
-      <BackButton onPress={jest.fn()} backOpacity={{ value: 1 } as any} visible={false} />
+      <BackButton onPress={jest.fn()} backOpacity={mockBackOpacity} visible={false} />
     );
     expect(queryByLabelText('Close viewer')).toBeNull();
   });
 
   it('NavArrow renders with button role', () => {
     const { getByLabelText } = render(
-      <NavArrow onPress={jest.fn()} backOpacity={{ value: 1 } as any} direction="left" visible />
+      <NavArrow onPress={jest.fn()} backOpacity={mockBackOpacity} direction="left" visible />
     );
     const button = getByLabelText('Previous photo');
     expect(button).toBeTruthy();
@@ -52,14 +53,14 @@ describe('PhotoViewerOverlay', () => {
 
   it('NavArrow returns null when not visible', () => {
     const { queryByLabelText } = render(
-      <NavArrow onPress={jest.fn()} backOpacity={{ value: 1 } as any} direction="right" visible={false} />
+      <NavArrow onPress={jest.fn()} backOpacity={mockBackOpacity} direction="right" visible={false} />
     );
     expect(queryByLabelText('Next photo')).toBeNull();
   });
 
   it('PhotoInfoBadge renders index and total', () => {
     const { getByText } = render(
-      <PhotoInfoBadge currentIndex={2} total={10} backOpacity={{ value: 1 } as any} />
+      <PhotoInfoBadge currentIndex={2} total={10} backOpacity={mockBackOpacity} />
     );
     expect(getByText('3 / 10')).toBeTruthy();
   });

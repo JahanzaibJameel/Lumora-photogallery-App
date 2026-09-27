@@ -24,7 +24,7 @@ Screens ──▶ Hooks ──▶ Services ──▶ Native modules (expo-media-
 
 1. **ThemeProvider** — light/dark/system colors, persisted to MMKV (`StorageKeys.THEMES`)
 2. **ReducedMotionProvider** — motion preference, persisted (`StorageKeys.REDUCED_MOTION`); mounts Reanimated's `ReducedMotionConfig` except when the mode is `system`
-3. **GridSizeProvider** — in-memory grid density (`small`/`medium`/`large`)
+3. **GridSizeProvider** — grid density (`small`/`medium`/`large`), persisted to MMKV (`StorageKeys.GRID_SIZE`)
 4. **GestureHandlerRootView** — required root for Gesture Handler
 
 `MainApp` renders `SafeAreaProvider` → `StatusBar` (tint follows theme) → `ErrorBoundary` → `RootNavigator`.
@@ -45,8 +45,6 @@ A single **stack navigator** (`@react-navigation/stack`, v7) with typed params (
 | `Widgets` | `WidgetsScreen` | `BlurHeader` with back button | default | n/a |
 
 When `useReducedMotion()` is true, the navigator applies a zero-duration `transitionSpec` / `forNoAnimation` interpolator so no screen transition animates.
-
-> `RootStackParamList` also declares a `Settings` route with **no registered screen** — it is dead config and should be wired up or removed (see [docs/PROJECT_STATUS.md](./PROJECT_STATUS.md)).
 
 ---
 
@@ -127,7 +125,7 @@ Object-literal singleton. A 5-minute TTL `widgetCache` avoids redundant native s
 
 | Builder | Behavior |
 | :--- | :--- |
-| `getDailyMemory()` | scans first 5 albums (50 photos each) in parallel, filters to same month/day in prior years, keeps 5 |
+| `getDailyMemory()` | scans first 10 albums (30 photos each) in parallel, filters to same month/day in prior years, keeps 5 |
 | `getRandomPhotos(count)` | parallel album scan, **Fisher–Yates** shuffle (not sort-by-random) |
 | `getAlbumPreview(albumId)` | `getAlbumById` + first 4 photos |
 | `getFavorites()` | reads `StorageKeys.FAVORITES`, batched `getPhotosByIds` (slice 4) |
@@ -142,7 +140,7 @@ Object-literal singleton. A 5-minute TTL `widgetCache` avoids redundant native s
 | :--- | :--- | :--- |
 | `ThemeContext` | `themeMode` (`light`/`dark`/`system`), derived `isDark`, typed `ColorTokens` | MMKV `THEMES` |
 | `ReducedMotionContext` | `reduceMotion` boolean, `reduceMotionMode` (`system`/`always`/`never`) | MMKV `REDUCED_MOTION` |
-| `GridSizeContext` | `gridSize` (`small`/`medium`/`large`), `cycleGridSize` | **none** (resets on relaunch) |
+| `GridSizeContext` | `gridSize` (`small`/`medium`/`large`), `cycleGridSize` | MMKV `GRID_SIZE` |
 
 All three expose a safe fallback when consumed outside the provider, and memoize their value object to avoid re-rendering the whole tree.
 

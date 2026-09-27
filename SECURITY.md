@@ -25,7 +25,7 @@ All stored keys live under a single MMKV instance (`lumora-storage`):
 | `lumora_themes` | Theme mode |
 | `lumora_reduced_motion` | Reduced-motion mode |
 | `lumora_search_history` | Recent search queries (capped at 20) |
-| `lumora_favorites` | Favorited photo IDs (reserved; no UI writes yet) |
+| `lumora_favorites` | Favorited photo IDs |
 | `lumora_widget_*` | Cached widget data |
 
 Keys are not encrypted at rest. MMKV encrypts only if explicitly configured (not currently). Treat the device as the trust boundary.
@@ -36,7 +36,7 @@ Keys are not encrypted at rest. MMKV encrypts only if explicitly configured (not
 
 ## Unused capabilities
 
-The following are installed/declared but **not used** by the app code today: `expo-secure-store` (also an `app.json` plugin), `expo-web-browser`. They expose no attack surface unless activated.
+The following was previously declared but has since been removed from `package.json` and `app.json`: `expo-secure-store` (also an `app.json` plugin), `expo-web-browser`, and `expo-font`. No attack surface remains from those packages.
 
 ## Supported versions
 

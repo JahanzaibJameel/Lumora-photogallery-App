@@ -19,8 +19,7 @@ describe('useAlbumThumbnail', () => {
   it('returns undefined when no initialUri and no thumbnail found', async () => {
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: jest.fn().mockResolvedValue(undefined),
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { result } = renderHook(() => useAlbumThumbnail('album-1'));
     await waitFor(() => expect(result.current).toBeUndefined());
@@ -30,8 +29,7 @@ describe('useAlbumThumbnail', () => {
     const mockGetThumbnail = jest.fn().mockResolvedValue('file://thumb.jpg');
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: mockGetThumbnail,
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { result } = renderHook(() => useAlbumThumbnail('album-1'));
     await waitFor(() => expect(result.current).toBe('file://thumb.jpg'));
@@ -46,8 +44,7 @@ describe('useAlbumThumbnail', () => {
 
     mockGetMediaService.mockReturnValue({
       getAlbumThumbnail: jest.fn().mockReturnValue(thumbPromise),
-      // eslint-disable-line @typescript-eslint/no-explicit-any
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { result, unmount } = renderHook(() => useAlbumThumbnail('album-1'));
     expect(result.current).toBeUndefined();

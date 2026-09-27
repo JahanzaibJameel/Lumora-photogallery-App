@@ -1,8 +1,8 @@
 import { render, fireEvent } from '@testing-library/react-native';
 import { Image } from 'expo-image';
 import React from 'react';
-import { useReducedMotion } from '../hooks/useReducedMotion';
 import { usePhotos } from '../hooks/usePhotos';
+import { useReducedMotion } from '../hooks/useReducedMotion';
 import { makePhoto } from '../test-utils';
 import PhotoViewer from './PhotoViewer';
 
@@ -52,7 +52,7 @@ describe('PhotoViewer', () => {
       refreshPhotos: jest.fn(),
       retryLoad: jest.fn(),
       deletePhoto: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     mockRouteParams = {
       albumId: 'album-1',
       initialIndex: 1,
@@ -111,7 +111,7 @@ describe('PhotoViewer', () => {
       refreshPhotos: jest.fn(),
       retryLoad: jest.fn(),
       deletePhoto: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { queryByLabelText, UNSAFE_getAllByType } = render(<PhotoViewer />);
     const views = UNSAFE_getAllByType(require('react-native').View);
@@ -135,7 +135,7 @@ describe('PhotoViewer', () => {
       refreshPhotos: jest.fn(),
       retryLoad: jest.fn(),
       deletePhoto: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     mockRouteParams = {
       albumId: 'album-1',
       initialIndex: 1,
@@ -159,7 +159,7 @@ describe('PhotoViewer', () => {
       refreshPhotos: jest.fn(),
       retryLoad: jest.fn(),
       deletePhoto: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     mockRouteParams = {
       albumId: 'album-1',
       initialIndex: 0,

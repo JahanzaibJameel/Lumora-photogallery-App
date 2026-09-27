@@ -6,8 +6,11 @@ All notable changes are documented here. The format is based on [Keep a Changelo
 
 ### Added
 
+- **Favorites UI** — Heart button in PhotoViewer overlay; tapping toggles favorite state; icons (outline/filled red) reflect state; persists to `StorageKeys.FAVORITES` in MMKV; `useFavorites` hook provides `isFavorite`/`toggleFavorite`/`addFavorite`/`removeFavorite`; integrated with existing widget system.
+- **Search history UI** — SearchBar component now surfaces recent searches in a dropdown when focused; users can tap to reuse queries or clear all history; integrated into PhotosScreen via BlurHeader.
+- **Bundle size analysis** — Expo Atlas integration in CI with `npm run bundle-size`; artifacts uploaded to GitHub Actions for 30 days; documentation at `docs/BUNDLE_SIZE.md`.
 - **Layered architecture documentation set** (`README.md`, `docs/ARCHITECTURE.md`, `docs/CONTRIBUTING.md`, `docs/TESTING.md`, `docs/PROJECT_STATUS.md`, `docs/ROADMAP.md`, `docs/SECURITY.md`, `docs/TROUBLESHOOTING.md`, `docs/DEPLOYMENT.md`, `LICENSE`).
-- **`GridSizeContext`** — in-memory small/medium/large density (cycled from the Photos screen).
+- **`GridSizeContext`** — small/medium/large density (cycled from the Photos screen), persisted to MMKV (`StorageKeys.GRID_SIZE`).
 - **`ReducedMotionContext` + `useReducedMotion`** — system/always/never modes, persisted; wired into all animated components and navigation transitions.
 - **`useAccessibility` helper** + `MIN_TOUCH_TARGET` (48 pt), `ACCESSIBILITY_HINTS`.
 - **Typed error taxonomy** — `AppError` (`category`/`severity`/`code`/`context`) + `categorizeError`; injectable `errorReporter` (Sentry stub).
@@ -33,10 +36,9 @@ All notable changes are documented here. The format is based on [Keep a Changelo
 
 ### Known gaps (see `docs/PROJECT_STATUS.md`)
 
-- Widget configuration and grid density are not persisted.
-- Favorites have no UI; the favorites widget always shows "No favorites yet".
-- Search history is persisted but has no UI.
-- `RootStackParamList.Settings` has no screen.
+- ~~Widget configuration and grid density are not persisted.~~ Done: both now persisted via MMKV (`StorageKeys.WIDGET_CONFIGS` and `StorageKeys.GRID_SIZE`).
+- ~~Favorites have no UI; the favorites widget always shows "No favorites yet".~~ Done: heart button in PhotoViewer allows marking/unmarking favorites; storage and widget integration complete.
+- ~~Search history is persisted but has no UI.~~ Done: history dropdown implemented in SearchBar.
 - No crash-reporting backend wired to `errorReporter`.
 
 ## [1.0.0] - 2026-08-13

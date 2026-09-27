@@ -1,4 +1,4 @@
-import React, { ReactNode, useMemo, useContext, useRef, useEffect, createContext } from 'react';
+import React, { ReactNode, useMemo, useContext, useEffect, createContext } from 'react';
 
 type ServiceToken = string;
 

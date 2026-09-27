@@ -1,8 +1,7 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import type { RouteProp } from '@react-navigation/native';
 import { Image } from 'expo-image';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useRef } from 'react';
 import { ActivityIndicator, BackHandler, Dimensions, StatusBar, StyleSheet, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
@@ -11,9 +10,11 @@ import Animated, {
 } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { useFavorites } from '../hooks/useFavorites';
 import { usePhotos } from '../hooks/usePhotos';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { RootStackParamList } from '../types/navigation';
+import { FavoriteButton } from './PhotoViewer/FavoriteButton';
 import { usePhotoGestures } from './PhotoViewer/PhotoViewerGestures';
 import { BackButton, NavArrow, PhotoInfoBadge } from './PhotoViewer/PhotoViewerOverlay';
 
@@ -27,6 +28,7 @@ const PhotoViewer = () => {
   const { albumId, initialIndex = 0 } = route.params;
   const reduceMotion = useReducedMotion();
   const { photos, loadMore } = usePhotos(albumId);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const currentIndexRef = useSharedValue(initialIndex);
   const goToIndex = useCallback((index: number) => {
@@ -39,6 +41,13 @@ const PhotoViewer = () => {
   const handleBack = useCallback(() => {
     navigation.goBack();
   }, [navigation]);
+
+  const handleToggleFavorite = useCallback(() => {
+    const photo = photos[currentIndex];
+    if (photo) {
+      toggleFavorite(photo.id);
+    }
+  }, [toggleFavorite, photos, currentIndex]);
 
   const handleNext = useCallback(() => {
     if (currentIndexRef.value < photos.length - 1) {
@@ -86,11 +95,25 @@ const PhotoViewer = () => {
     return () => backHandler.remove();
   }, [handleBack]);
 
-  // Load more photos when approaching the end of the list
+  const loadMoreRef = useRef<number | null>(null);
+
+  // Load more photos when approaching the end of the list (with debouncing)
   useEffect(() => {
     if (currentIndex >= photos.length - 5) {
-      loadMore();
+      // Debounce loadMore to prevent multiple rapid calls during fast swiping
+      if (loadMoreRef.current) {
+        clearTimeout(loadMoreRef.current);
+      }
+      loadMoreRef.current = setTimeout(() => {
+        loadMore();
+      }, 300);
     }
+    
+    return () => {
+      if (loadMoreRef.current) {
+        clearTimeout(loadMoreRef.current);
+      }
+    };
   }, [currentIndex, photos.length, loadMore]);
 
   // Warm the image cache for both neighbours so a swipe resolves from memory
@@ -143,6 +166,14 @@ const PhotoViewer = () => {
 
       <BackButton
         onPress={handleBack}
+        backOpacity={backOpacity}
+        visible
+        top={Math.max(insets.top + 8, 16)}
+      />
+
+      <FavoriteButton
+        onPress={handleToggleFavorite}
+        isFavorite={isFavorite(currentPhoto.id)}
         backOpacity={backOpacity}
         visible
         top={Math.max(insets.top + 8, 16)}

@@ -54,9 +54,9 @@ The integration test (`__tests__/App.test.tsx`) mounts the full tree. Component/
 
 ## Lint / type errors
 
-### `npm run lint` reports 41 warnings
+### `npm run lint` reports warnings
 
-These are mostly in `*.test.*` files (`no-explicit-any`, unused directives/aliases), plus a few in source files (`usePhotos.ts` unused `signal` parameter, `di.tsx` unused `useRef`, `media.service.performance.test.ts` import order). They are **warnings, not errors** — `expo lint` passes. Address them incrementally; see tech debt in [docs/PROJECT_STATUS.md](./PROJECT_STATUS.md).
+The lint config (`eslint.config.mjs`) is clean — `expo lint` passes with **0 errors and 0 warnings**. If you see warnings locally, they are likely from editor extensions or a stale config; run `npx expo lint` from the project root to confirm.
 
 ### `type-check` fails only in tests
 

@@ -22,7 +22,7 @@ export interface UsePhotosReturn {
 export const usePhotos = (albumId: string): UsePhotosReturn => {
   const deletedIdsRef = useRef<Set<string>>(new Set());
 
-  const fetchPage = useCallback(async (cursor: string | undefined, signal: AbortSignal) => {
+  const fetchPage = useCallback(async (cursor: string | undefined, _signal: AbortSignal) => {
     const mediaService = getMediaService();
     const result = await mediaService.getPhotosFromAlbum(albumId, cursor, PHOTOS_BATCH_SIZE);
     return {

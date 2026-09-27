@@ -43,7 +43,7 @@ const renderScreen = (ui: React.ReactElement) =>
 describe('WidgetsScreen', () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    mockedUseTheme.mockReturnValue(mockTheme as any);
+    mockedUseTheme.mockReturnValue(mockTheme as any); // eslint-disable-line @typescript-eslint/no-explicit-any
     mockedUseReducedMotion.mockReturnValue(false);
   });
 
@@ -58,7 +58,7 @@ describe('WidgetsScreen', () => {
       updateWidgetConfig: jest.fn(),
       addWidget: jest.fn(),
       removeWidget: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<WidgetsScreen />);
     expect(getByText('Widgets')).toBeTruthy();
@@ -78,7 +78,7 @@ describe('WidgetsScreen', () => {
       updateWidgetConfig: jest.fn(),
       addWidget: jest.fn(),
       removeWidget: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<WidgetsScreen />);
     expect(getByText('Daily Memory')).toBeTruthy();
@@ -98,7 +98,7 @@ describe('WidgetsScreen', () => {
       updateWidgetConfig: jest.fn(),
       addWidget: jest.fn(),
       removeWidget: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByLabelText } = renderScreen(<WidgetsScreen />);
     const toggle = getByLabelText('Daily Memory widget switch');
@@ -120,7 +120,7 @@ describe('WidgetsScreen', () => {
       updateWidgetConfig: jest.fn(),
       addWidget: jest.fn(),
       removeWidget: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByText } = renderScreen(<WidgetsScreen />);
     expect(getByText(/Last updated:/)).toBeTruthy();
@@ -138,7 +138,7 @@ describe('WidgetsScreen', () => {
       updateWidgetConfig: jest.fn(),
       addWidget: jest.fn(),
       removeWidget: jest.fn(),
-    } as any);
+    } as any); // eslint-disable-line @typescript-eslint/no-explicit-any
 
     const { getByLabelText } = renderScreen(<WidgetsScreen />);
     fireEvent.press(getByLabelText('Refresh all widgets'));

@@ -1,6 +1,6 @@
 # Testing
 
-Lumora's test suite is colocated with the source and runs under Jest + `jest-expo`. As of v1.0.0 it covers **41 suites / 409 tests**, with global coverage of **93.6% statements / 83.3% branches / 90.8% functions / 94.1% lines**.
+Lumora's test suite is colocated with the source and runs under Jest + `jest-expo`. As of v1.0.0 it covers **51 suites / 497 tests**, with global coverage of **85.9% statements / 77.0% branches / 84.3% functions / 86.4% lines**.
 
 ## Commands
 
@@ -14,7 +14,7 @@ npm run test:coverage    # coverage report with enforced 70% floors
 
 ## Structure
 
-- **Unit tests** live next to the code they exercise: `src/hooks/usePhotos.test.ts`, `src/services/media.service.test.ts`, `src/components/AlbumCard.test.tsx`, etc. (41 colocated files).
+- **Unit tests** live next to the code they exercise: `src/hooks/usePhotos.test.ts`, `src/services/media.service.test.ts`, `src/components/AlbumCard.test.tsx`, etc. (51 colocated files).
 - **Integration test:** [`__tests__/App.test.tsx`](../__tests__/App.test.tsx) renders the full provider tree and asserts the Albums screen mounts.
 
 ## Native module mocks
